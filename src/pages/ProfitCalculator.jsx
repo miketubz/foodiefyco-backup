@@ -54,6 +54,7 @@ const ProfitCalculator = () => {
   const [error, setError] = useState('');
   const [activePreset, setActivePreset] = useState('');
   const [showUnpaidDetails, setShowUnpaidDetails] = useState(false);
+  const [updatingOrderId, setUpdatingOrderId] = useState('');
   const unpaidDetailsRef = useRef(null);
 
   const openUnpaidDetails = () => {
@@ -184,6 +185,30 @@ const ProfitCalculator = () => {
       setSalesData(null);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleMarkPaid = async (orderId) => {
+    if (!orderId) return;
+
+    setUpdatingOrderId(orderId);
+    setError('');
+
+    try {
+      const { error: updateError } = await supabase
+        .from('orders')
+        .update({ payment_status: 'paid' })
+        .eq('id', orderId);
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      await fetchSalesSummary();
+    } catch (updateErr) {
+      setError(updateErr.message || 'Failed to update payment status.');
+    } finally {
+      setUpdatingOrderId('');
     }
   };
 
@@ -893,6 +918,7 @@ const ProfitCalculator = () => {
                               <th className="px-3 py-2 text-left">Status</th>
                               <th className="px-3 py-2 text-left">Payment Status</th>
                               <th className="px-3 py-2 text-right">Net Amount</th>
+                              <th className="px-3 py-2 text-right">Action</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -912,6 +938,16 @@ const ProfitCalculator = () => {
                                 </td>
                                 <td className="px-3 py-2 text-right font-semibold text-slate-900">
                                   {formatCurrency(getNetAmount(order))}
+                                </td>
+                                <td className="px-3 py-2 text-right">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleMarkPaid(order.id)}
+                                    disabled={updatingOrderId === order.id}
+                                    className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                                  >
+                                    {updatingOrderId === order.id ? 'Updating...' : 'Mark Paid'}
+                                  </button>
                                 </td>
                               </tr>
                             ))}
