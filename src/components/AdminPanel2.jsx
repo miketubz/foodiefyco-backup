@@ -20,6 +20,8 @@ const DEFAULT_PROMO_FORM = {
   endsAt: '',
 };
 
+const DELIVERY_RECEIPT_PRESETS = ['0', '40', '60', '80', '100'];
+
 
 const formatDateInput = (date) => {
   const year = date.getFullYear();
@@ -1688,8 +1690,34 @@ export const AdminPanel2 = () => {
 
               <form onSubmit={handleConfirmDeliveryReceipt} className="mt-4 space-y-4">
                 <div>
+                  <p className="mb-2 block text-sm font-semibold text-gray-700">
+                    Quick select
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {DELIVERY_RECEIPT_PRESETS.map((preset) => {
+                      const isActive = deliveryReceiptDraft.amount === preset;
+
+                      return (
+                        <button
+                          key={preset}
+                          type="button"
+                          onClick={() => setDeliveryReceiptDraft((prev) => ({ ...prev, amount: preset }))}
+                          className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                            isActive
+                              ? 'bg-amber-600 text-white'
+                              : 'bg-amber-50 text-amber-700 hover:bg-amber-100'
+                          }`}
+                        >
+                          {formatCurrency(preset)}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div>
                   <label className="mb-2 block text-sm font-semibold text-gray-700" htmlFor="delivery-charge-input">
-                    Delivery charge
+                    Manual delivery charge
                   </label>
                   <input
                     id="delivery-charge-input"
