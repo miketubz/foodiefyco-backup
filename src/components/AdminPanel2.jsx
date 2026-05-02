@@ -46,7 +46,8 @@ const escapeHtml = (value) =>
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
 
-const buildReceiptHtml = (order) => {
+const buildReceiptHtml = (order, options = {}) => {
+  const deliveryCharge = Math.max(0, Number(options.deliveryCharge || 0));
   const itemRows = (order.orderItems || [])
     .map(
       (item) => `
@@ -66,6 +67,8 @@ const buildReceiptHtml = (order) => {
   );
 
   const subtotal = itemTotal || Number(order.totalAmount || 0) + Number(order.discountAmount || 0);
+  const receiptGrandTotal = Number(order.totalAmount || 0) + deliveryCharge;
+  const totalsLabel = deliveryCharge > 0 ? 'Amount Due' : 'Total';
 
   return `
     <!DOCTYPE html>
@@ -130,9 +133,31 @@ const buildReceiptHtml = (order) => {
             font-weight: 700;
             font-size: 18px;
           }
+          .toolbar {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-bottom: 16px;
+          }
+          .toolbar button {
+            border: 0;
+            border-radius: 999px;
+            background: #111827;
+            color: #ffffff;
+            padding: 10px 16px;
+            font-weight: 600;
+            cursor: pointer;
+          }
+          .toolbar button.secondary {
+            background: #e5e7eb;
+            color: #111827;
+          }
           @media print {
             body {
               padding: 0;
+            }
+            .toolbar {
+              display: none;
             }
           }
           @media (max-width: 640px) {
@@ -150,6 +175,11 @@ const buildReceiptHtml = (order) => {
       </head>
       <body>
         <div class="receipt">
+          <div class="toolbar">
+            <button type="button" onclick="window.print()">Print / Save PDF</button>
+            <button type="button" class="secondary" onclick="window.close()">Close</button>
+          </div>
+
           <div class="header">
             <h1 style="margin:0 0 8px;">FoodiefyCo Receipt</h1>
             <p class="muted" style="margin:0;">Customer order summary</p>
@@ -188,7 +218,8 @@ const buildReceiptHtml = (order) => {
           <div class="section totals">
             <div class="totals-row"><span>Subtotal</span><span>${formatCurrency(subtotal)}</span></div>
             <div class="totals-row"><span>Discount</span><span>-${formatCurrency(order.discountAmount)}</span></div>
-            <div class="totals-row total"><span>Total</span><span>${formatCurrency(order.totalAmount)}</span></div>
+            ${deliveryCharge > 0 ? `<div class="totals-row"><span>Delivery Charge (3rd party)</span><span>${formatCurrency(deliveryCharge)}</span></div>` : ''}
+            <div class="totals-row total"><span>${totalsLabel}</span><span>${formatCurrency(receiptGrandTotal)}</span></div>
           </div>
 
           <div class="section">
@@ -884,7 +915,7 @@ export const AdminPanel2 = () => {
   };
 
 
-  const handlePrintReceipt = (order) => {
+  const openReceiptWindow = (order, options = {}) => {
     const receiptWindow = window.open('', '_blank', 'width=900,height=900');
 
     if (!receiptWindow) {
@@ -892,12 +923,34 @@ export const AdminPanel2 = () => {
       return;
     }
 
-    receiptWindow.document.write(buildReceiptHtml(order));
+    receiptWindow.document.write(buildReceiptHtml(order, options));
     receiptWindow.document.close();
+  };
+
+  const handlePrintReceipt = (order) => {
+    openReceiptWindow(order);
   };
 
   const handlePdfReceipt = (order) => {
     handlePrintReceipt(order);
+  };
+
+  const handleDeliveryReceipt = (order) => {
+    const rawValue = window.prompt('Enter delivery charge for receipt only (example: 49 or 49.50):', '0');
+
+    if (rawValue === null) {
+      return;
+    }
+
+    const normalizedValue = String(rawValue).replace(/[^0-9.]/g, '');
+    const deliveryCharge = Number(normalizedValue);
+
+    if (!Number.isFinite(deliveryCharge) || deliveryCharge < 0) {
+      window.alert('Enter a valid delivery charge amount.');
+      return;
+    }
+
+    openReceiptWindow(order, { deliveryCharge });
   };
 
   const handleSignOut = async () => {
@@ -1516,16 +1569,19 @@ export const AdminPanel2 = () => {
                         </td>
                         <td className="px-4 py-3 text-center">
                           <div className="flex flex-wrap justify-center gap-2">
-                            <button onClick={() => setExpandedOrderId(isExpanded ? null : order.orderId)} className="rounded-md bg-gray-900 px-3 py-2 text-white hover:bg-gray-800">
+                            <button onClick={() => setExpandedOrderId(isExpanded ? null : order.orderId)} className="rounded-md bg-gray-900 px-3 py-2 text-sm text-white hover:bg-gray-800">
                               {isExpanded ? 'Hide' : 'View'}
                             </button>
-                            <button onClick={() => handlePrintReceipt(order)} className="rounded-md bg-sky-600 px-3 py-2 text-white hover:bg-sky-700">
+                            <button onClick={() => handlePrintReceipt(order)} className="rounded-md bg-sky-600 px-3 py-2 text-sm text-white hover:bg-sky-700">
                               Print
                             </button>
-                            <button onClick={() => handlePdfReceipt(order)} className="rounded-md bg-emerald-600 px-3 py-2 text-white hover:bg-emerald-700">
+                            <button onClick={() => handlePdfReceipt(order)} className="rounded-md bg-emerald-600 px-3 py-2 text-sm text-white hover:bg-emerald-700">
                               PDF
                             </button>
-                            <button onClick={() => handleArchiveSingle(order)} disabled={!canArchive || !archiveSchemaReady || bulkArchiving} className="rounded-md bg-purple-600 px-3 py-2 text-white disabled:bg-gray-300">
+                            <button onClick={() => handleDeliveryReceipt(order)} className="rounded-md bg-amber-600 px-3 py-2 text-sm text-white hover:bg-amber-700">
+                              Deliver + Receipt
+                            </button>
+                            <button onClick={() => handleArchiveSingle(order)} disabled={!canArchive || !archiveSchemaReady || bulkArchiving} className="rounded-md bg-purple-600 px-3 py-2 text-sm text-white disabled:bg-gray-300">
                               Archive
                             </button>
                           </div>
