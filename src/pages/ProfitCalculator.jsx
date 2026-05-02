@@ -122,7 +122,7 @@ const ProfitCalculator = () => {
 
       const { data, error: fetchError } = await supabase
         .from('orders')
-        .select('id, total_amount, discount_amount, status, payment_status, created_at')
+        .select('id, customer_name, total_amount, discount_amount, status, payment_status, created_at')
         .gte('created_at', queryStart.toISOString())
         .lte('created_at', queryEnd.toISOString())
         .order('created_at', { ascending: true });
@@ -888,7 +888,7 @@ const ProfitCalculator = () => {
                         <table className="min-w-full text-sm">
                           <thead className="bg-slate-100 text-slate-700">
                             <tr>
-                              <th className="px-3 py-2 text-left">Order ID</th>
+                              <th className="px-3 py-2 text-left">Customer</th>
                               <th className="px-3 py-2 text-left">Created</th>
                               <th className="px-3 py-2 text-left">Status</th>
                               <th className="px-3 py-2 text-left">Payment Status</th>
@@ -898,7 +898,7 @@ const ProfitCalculator = () => {
                           <tbody>
                             {(salesData?.unpaidOrders || []).map((order) => (
                               <tr key={order.id} className="border-b border-slate-200 align-top">
-                                <td className="max-w-[220px] break-all px-3 py-2 font-medium text-slate-900">{order.id}</td>
+                                <td className="max-w-[220px] break-words px-3 py-2 font-medium text-slate-900">{String(order.customer_name || 'Unknown')}</td>
                                 <td className="px-3 py-2 text-slate-700">{formatDateTime(order.created_at)}</td>
                                 <td className="px-3 py-2">
                                   <span className="inline-block rounded bg-slate-100 px-2 py-1 text-xs font-semibold capitalize text-slate-700">
