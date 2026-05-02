@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 import { supabase } from '../lib/supabaseClient.js';
 
 const formatCurrency = (value) =>
@@ -53,45 +55,102 @@ const buildArchiveReportHtml = (orders, filters) => {
       <head>
         <title>Archived Orders Report</title>
         <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
         <style>
-          body { font-family: Arial, sans-serif; color: #0f172a; padding: 24px; }
-          h1, h2 { margin: 0 0 12px 0; }
-          .meta { margin-bottom: 20px; color: #475569; }
-          table { width: 100%; border-collapse: collapse; margin-top: 12px; }
-          th, td { border: 1px solid #cbd5e1; padding: 10px; text-align: left; font-size: 14px; vertical-align: top; }
+          * { box-sizing: border-box; }
+          body { font-family: Arial, sans-serif; color: #0f172a; margin: 0; padding: 24px; background: #ffffff; }
+          .report { max-width: 1120px; margin: 0 auto; }
+          h1 { margin: 0; font-size: 28px; }
+          .subtitle { margin: 6px 0 0; color: #475569; font-size: 14px; }
+          .meta { margin: 18px 0 20px; color: #334155; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; }
+          .meta-item { font-size: 13px; }
+          table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+          th, td { border: 1px solid #cbd5e1; padding: 8px; text-align: left; font-size: 12px; vertical-align: top; word-break: break-word; }
           th { background: #f8fafc; }
-          @media print { body { padding: 0; } }
+          td:nth-child(3), th:nth-child(3) { text-align: right; }
+          @media print {
+            @page { size: A4 landscape; margin: 10mm; }
+            body { padding: 0; }
+            .report { max-width: none; }
+            th, td { font-size: 11px; padding: 6px; }
+          }
+          @media (max-width: 768px) {
+            body { padding: 12px; }
+            h1 { font-size: 22px; }
+            .meta { grid-template-columns: 1fr; }
+            th, td { font-size: 11px; }
+          }
         </style>
       </head>
       <body>
-        <h1>Archived Orders Report</h1>
-        <div class="meta">
-          <div><strong>Start Date:</strong> ${filters.startDate || '—'}</div>
-          <div><strong>End Date:</strong> ${filters.endDate || '—'}</div>
-          <div><strong>Status:</strong> ${filters.status || 'all'}</div>
-          <div><strong>Date Type:</strong> ${filters.dateType === 'created' ? 'Ordered Date' : 'Archived Date'}</div>
-          <div><strong>Total Rows:</strong> ${orders.length}</div>
+        <div class="report">
+          <h1>Archived Orders Report</h1>
+          <p class="subtitle">FoodiefyCo Archive Summary</p>
+          <div class="meta">
+            <div class="meta-item"><strong>Start Date:</strong> ${filters.startDate || '—'}</div>
+            <div class="meta-item"><strong>End Date:</strong> ${filters.endDate || '—'}</div>
+            <div class="meta-item"><strong>Status:</strong> ${filters.status || 'all'}</div>
+            <div class="meta-item"><strong>Date Type:</strong> ${filters.dateType === 'created' ? 'Ordered Date' : 'Archived Date'}</div>
+            <div class="meta-item"><strong>Total Rows:</strong> ${orders.length}</div>
+            <div class="meta-item"><strong>Generated:</strong> ${new Date().toLocaleString()}</div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Customer</th>
+                <th>Total</th>
+                <th>Status</th>
+                <th>Payment</th>
+                <th>Ordered</th>
+                <th>Archived</th>
+                <th>Reason</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows || '<tr><td colspan="8">No archived orders found.</td></tr>'}
+            </tbody>
+          </table>
         </div>
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Customer</th>
-              <th>Total</th>
-              <th>Status</th>
-              <th>Payment</th>
-              <th>Ordered</th>
-              <th>Archived</th>
-              <th>Reason</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rows || '<tr><td colspan="8">No archived orders found.</td></tr>'}
-          </tbody>
-        </table>
       </body>
     </html>
   `;
+};
+
+const buildArchiveCsv = (orders) => {
+  const header = [
+    'Order ID',
+    'Customer',
+    'Total',
+    'Status',
+    'Payment Method',
+    'Payment Status',
+    'Ordered Date',
+    'Archived Date',
+    'Reason',
+  ];
+
+  const escapeCsv = (value) => {
+    const text = String(value ?? '');
+    const escaped = text.replaceAll('"', '""');
+    return `"${escaped}"`;
+  };
+
+  const lines = orders.map((order) => [
+    order.orderId,
+    order.customerName || '',
+    Number(order.totalAmount || 0).toFixed(2),
+    order.status || '',
+    order.paymentMethod || '',
+    order.paymentStatus || '',
+    formatDateTime(order.createdAt),
+    formatDateTime(order.archivedAt),
+    order.archiveReason || '',
+  ]);
+
+  return [header, ...lines]
+    .map((row) => row.map(escapeCsv).join(','))
+    .join('\n');
 };
 
 export default function ArchivePage() {
@@ -320,11 +379,7 @@ export default function ArchivePage() {
   };
 
   const handlePrint = () => {
-    window.print();
-  };
-
-  const handleExportPdf = () => {
-    const printWindow = window.open('', '_blank', 'width=1200,height=800');
+    const printWindow = window.open('', '_blank', 'width=1300,height=900');
     if (!printWindow) return;
 
     printWindow.document.write(buildArchiveReportHtml(orders, filters));
@@ -332,7 +387,74 @@ export default function ArchivePage() {
     printWindow.focus();
     setTimeout(() => {
       printWindow.print();
-    }, 300);
+    }, 250);
+  };
+
+  const handleExportPdf = () => {
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
+    doc.setFontSize(16);
+    doc.text('FoodiefyCo - Archived Orders Report', 14, 14);
+    doc.setFontSize(9);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 20);
+    doc.text(`Rows: ${orders.length}`, 14, 25);
+    doc.text(`Date Type: ${filters.dateType === 'created' ? 'Ordered Date' : 'Archived Date'}`, 60, 25);
+
+    const head = [['ID', 'Customer', 'Total', 'Status', 'Payment', 'Ordered', 'Archived', 'Reason']];
+    const body = orders.map((order) => [
+      order.orderId,
+      order.customerName || '—',
+      formatCurrency(order.totalAmount),
+      order.status,
+      order.paymentMethod || '—',
+      formatDateTime(order.createdAt),
+      formatDateTime(order.archivedAt),
+      order.archiveReason || '—',
+    ]);
+
+    doc.autoTable({
+      head,
+      body,
+      startY: 30,
+      styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak' },
+      headStyles: { fillColor: [51, 65, 85], textColor: 255 },
+      columnStyles: {
+        0: { cellWidth: 38 },
+        1: { cellWidth: 30 },
+        2: { halign: 'right', cellWidth: 20 },
+        3: { cellWidth: 20 },
+        4: { cellWidth: 22 },
+        5: { cellWidth: 35 },
+        6: { cellWidth: 35 },
+        7: { cellWidth: 'auto' },
+      },
+      didDrawPage: (data) => {
+        const pageCount = doc.internal.getNumberOfPages();
+        doc.setFontSize(8);
+        doc.text(`Page ${data.pageNumber} of ${pageCount}`, data.settings.margin.left, doc.internal.pageSize.height - 5);
+      },
+    });
+
+    const dateStamp = new Date().toISOString().slice(0, 10);
+    doc.save(`archived-orders-${dateStamp}.pdf`);
+  };
+
+  const handleExportExcel = () => {
+    if (!orders.length) {
+      setError('No archived orders to export.');
+      return;
+    }
+
+    const csv = buildArchiveCsv(orders);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `archived-orders-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -473,6 +595,13 @@ export default function ArchivePage() {
               className="rounded-lg bg-fuchsia-600 px-4 py-2.5 font-semibold text-white hover:bg-fuchsia-700"
             >
               Export to PDF
+            </button>
+
+            <button
+              onClick={handleExportExcel}
+              className="rounded-lg bg-emerald-600 px-4 py-2.5 font-semibold text-white hover:bg-emerald-700"
+            >
+              Export Excel/CSV
             </button>
           </div>
         </div>

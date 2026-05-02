@@ -395,6 +395,14 @@ export const AdminPanel2 = () => {
           return orderDateKey === yesterdayKey;
         }
 
+        if (salesRange === 'lastMonth') {
+          const firstDayLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+          const lastDayLastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+          const firstDayLastMonthKey = formatDateInput(firstDayLastMonth);
+          const lastDayLastMonthKey = formatDateInput(lastDayLastMonth);
+          return orderDateKey >= firstDayLastMonthKey && orderDateKey <= lastDayLastMonthKey;
+        }
+
         const sevenDayStart = new Date();
         sevenDayStart.setDate(today.getDate() - 6);
         const sevenDayStartKey = formatDateInput(sevenDayStart);
@@ -414,6 +422,14 @@ export const AdminPanel2 = () => {
           previousDay.setDate(today.getDate() - 2);
           const previousDayKey = formatDateInput(previousDay);
           return orderDateKey === previousDayKey;
+        }
+
+        if (salesRange === 'lastMonth') {
+          const firstDayPreviousMonth = new Date(today.getFullYear(), today.getMonth() - 2, 1);
+          const lastDayPreviousMonth = new Date(today.getFullYear(), today.getMonth() - 1, 0);
+          const firstDayPreviousMonthKey = formatDateInput(firstDayPreviousMonth);
+          const lastDayPreviousMonthKey = formatDateInput(lastDayPreviousMonth);
+          return orderDateKey >= firstDayPreviousMonthKey && orderDateKey <= lastDayPreviousMonthKey;
         }
 
         const previousRangeEnd = new Date();
@@ -745,6 +761,11 @@ export const AdminPanel2 = () => {
       const start = new Date(now.getFullYear(), now.getMonth(), 1);
       startDate = formatDateInput(start);
       endDate = formatDateInput(now);
+    } else if (type === 'lastMonth') {
+      const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const end = new Date(now.getFullYear(), now.getMonth(), 0);
+      startDate = formatDateInput(start);
+      endDate = formatDateInput(end);
     }
 
     const nextFilters = { ...filters, startDate, endDate };
@@ -979,6 +1000,7 @@ export const AdminPanel2 = () => {
               { key: 'today', label: 'Today' },
               { key: 'yesterday', label: 'Yesterday' },
               { key: 'week', label: 'This Week' },
+              { key: 'lastMonth', label: 'Last Month' },
             ].map((option) => (
               <button
                 key={option.key}
@@ -1020,7 +1042,7 @@ export const AdminPanel2 = () => {
                   ? 'text-emerald-700'
                   : 'text-red-600'
               }`}>
-                {todaySalesSummary.expectedSales - previousSales >= 0 ? '▲' : '▼'} {formatCurrency(Math.abs(todaySalesSummary.expectedSales - previousSales))} vs previous {salesRange === 'week' ? '7 days' : 'period'}
+                {todaySalesSummary.expectedSales - previousSales >= 0 ? '▲' : '▼'} {formatCurrency(Math.abs(todaySalesSummary.expectedSales - previousSales))} vs previous {salesRange === 'week' ? '7 days' : salesRange === 'lastMonth' ? 'month' : 'period'}
               </p>
               <p className="mt-1 text-sm text-slate-600">
                 {todaySalesSummary.expectedCount} non-cancelled order(s)
@@ -1304,6 +1326,7 @@ export const AdminPanel2 = () => {
             <button onClick={() => handleQuickRange('yesterday')} className="rounded-full bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700">Yesterday</button>
             <button onClick={() => handleQuickRange('last7')} className="rounded-full bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700">Last 7 Days</button>
             <button onClick={() => handleQuickRange('thisMonth')} className="rounded-full bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700">This Month</button>
+            <button onClick={() => handleQuickRange('lastMonth')} className="rounded-full bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700">Last Month</button>
             <button onClick={() => handleQuickRange('all')} className="rounded-full bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-700">All Dates</button>
           </div>
 
@@ -1366,7 +1389,33 @@ export const AdminPanel2 = () => {
                   <p className="text-sm text-gray-700">{order.itemsSummary}</p>
                   <div className="mt-2 text-sm text-gray-600">Payment: {order.paymentMethod} • {order.paymentStatus}</div>
                   <div className="mt-2 text-sm text-gray-600">Total: ₱{Number(order.totalAmount || 0).toFixed(2)}</div>
-                  <div className="mt-2 text-sm text-gray-600">Status: {order.status}</div>
+                  <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                    <label className="text-sm text-gray-600">
+                      <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Payment Status</span>
+                      <select
+                        value={order.paymentStatus}
+                        onChange={(e) => handlePaymentStatusChange(order.orderId, e.target.value)}
+                        disabled={savingOrderId === order.orderId}
+                        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                      >
+                        <option value="unpaid">Unpaid</option>
+                        <option value="paid">Paid</option>
+                      </select>
+                    </label>
+                    <label className="text-sm text-gray-600">
+                      <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Order Status</span>
+                      <select
+                        value={order.status}
+                        onChange={(e) => handleStatusChange(order.orderId, e.target.value)}
+                        disabled={savingOrderId === order.orderId}
+                        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                      >
+                        <option value="pending">Pending</option>
+                        <option value="completed">Completed</option>
+                        <option value="cancelled">Cancelled</option>
+                      </select>
+                    </label>
+                  </div>
                   <div className="mt-2">{renderProofContent(order)}</div>
                   <div className="mt-3 flex flex-wrap gap-2">
                     <button
