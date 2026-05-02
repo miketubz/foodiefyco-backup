@@ -16,6 +16,13 @@ const formatNumber = (value) =>
     maximumFractionDigits: 2,
   });
 
+const formatDateTime = (value) => {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+  return date.toLocaleString('en-PH');
+};
+
 const formatDateInput = (date) => {
   const year = date.getFullYear();
   const month = `${date.getMonth() + 1}`.padStart(2, '0');
@@ -46,6 +53,7 @@ const ProfitCalculator = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [activePreset, setActivePreset] = useState('');
+  const [showUnpaidDetails, setShowUnpaidDetails] = useState(false);
 
   const setToday = () => {
     const today = formatDateInput(new Date());
@@ -155,6 +163,7 @@ const ProfitCalculator = () => {
         averageOrderValue: paidOrders.length ? totalPaidSales / paidOrders.length : 0,
         unpaidPreviewSales: totalUnpaidPreview,
         unpaidOrderCount: unpaidOrders.length,
+        unpaidOrders,
         expectedIfAllPaid,
         validOrderCount: validOrders.length,
         dailyBreakdown,
@@ -627,6 +636,15 @@ const ProfitCalculator = () => {
                 <p className="mt-2 text-sm text-slate-500">
                   {loading ? 'Loading...' : salesData?.unpaidOrderCount || 0} unpaid order(s)
                 </p>
+                {!loading && (salesData?.unpaidOrderCount || 0) > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowUnpaidDetails((prev) => !prev)}
+                    className="mt-3 text-sm font-semibold text-amber-700 underline decoration-amber-300 underline-offset-4 hover:text-amber-800"
+                  >
+                    {showUnpaidDetails ? 'Hide unpaid records' : 'View unpaid records'}
+                  </button>
+                )}
               </div>
 
               <div className="rounded-2xl bg-white p-5 shadow-sm">
@@ -718,9 +736,21 @@ const ProfitCalculator = () => {
                     </div>
                     <div className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3">
                       <span className="text-sm text-slate-600">Unpaid Preview</span>
-                      <span className="font-semibold text-amber-700">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if ((salesData?.unpaidOrderCount || 0) > 0) {
+                            setShowUnpaidDetails((prev) => !prev);
+                          }
+                        }}
+                        className={`font-semibold ${
+                          (salesData?.unpaidOrderCount || 0) > 0
+                            ? 'text-amber-700 underline decoration-amber-300 underline-offset-4 hover:text-amber-800'
+                            : 'text-amber-700'
+                        }`}
+                      >
                         {formatCurrency(salesData?.unpaidPreviewSales || 0)}
-                      </span>
+                      </button>
                     </div>
                     <div className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3">
                       <span className="text-sm text-slate-600">Expected If All Paid</span>
@@ -825,6 +855,62 @@ const ProfitCalculator = () => {
                     </div>
                   </div>
                 </div>
+
+                {showUnpaidDetails && (
+                  <div className="rounded-2xl bg-white p-5 shadow-sm sm:p-6">
+                    <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                      <h2 className="text-lg font-semibold text-slate-900">Unpaid Records Behind Preview</h2>
+                      <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
+                        {salesData?.unpaidOrderCount || 0} order(s)
+                      </span>
+                    </div>
+
+                    {(salesData?.unpaidOrders || []).length === 0 ? (
+                      <div className="rounded-xl border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-500">
+                        No unpaid rows in this range.
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full text-sm">
+                          <thead className="bg-slate-100 text-slate-700">
+                            <tr>
+                              <th className="px-3 py-2 text-left">Order ID</th>
+                              <th className="px-3 py-2 text-left">Created</th>
+                              <th className="px-3 py-2 text-left">Status</th>
+                              <th className="px-3 py-2 text-left">Payment Status</th>
+                              <th className="px-3 py-2 text-right">Net Amount</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(salesData?.unpaidOrders || []).map((order) => (
+                              <tr key={order.id} className="border-b border-slate-200 align-top">
+                                <td className="max-w-[220px] break-all px-3 py-2 font-medium text-slate-900">{order.id}</td>
+                                <td className="px-3 py-2 text-slate-700">{formatDateTime(order.created_at)}</td>
+                                <td className="px-3 py-2">
+                                  <span className="inline-block rounded bg-slate-100 px-2 py-1 text-xs font-semibold capitalize text-slate-700">
+                                    {String(order.status || 'unknown')}
+                                  </span>
+                                </td>
+                                <td className="px-3 py-2">
+                                  <span className="inline-block rounded bg-amber-100 px-2 py-1 text-xs font-semibold capitalize text-amber-800">
+                                    {String(order.payment_status || 'unknown')}
+                                  </span>
+                                </td>
+                                <td className="px-3 py-2 text-right font-semibold text-slate-900">
+                                  {formatCurrency(getNetAmount(order))}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
+                    <p className="mt-3 text-xs text-slate-500">
+                      Note: Completed orders can still appear here if their payment status is not paid.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </section>
