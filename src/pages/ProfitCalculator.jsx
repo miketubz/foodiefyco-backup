@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 
@@ -54,6 +54,15 @@ const ProfitCalculator = () => {
   const [error, setError] = useState('');
   const [activePreset, setActivePreset] = useState('');
   const [showUnpaidDetails, setShowUnpaidDetails] = useState(false);
+  const unpaidDetailsRef = useRef(null);
+
+  const openUnpaidDetails = () => {
+    if ((salesData?.unpaidOrderCount || 0) <= 0) return;
+    setShowUnpaidDetails(true);
+    window.requestAnimationFrame(() => {
+      unpaidDetailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  };
 
   const setToday = () => {
     const today = formatDateInput(new Date());
@@ -639,7 +648,7 @@ const ProfitCalculator = () => {
                 {!loading && (salesData?.unpaidOrderCount || 0) > 0 && (
                   <button
                     type="button"
-                    onClick={() => setShowUnpaidDetails((prev) => !prev)}
+                    onClick={openUnpaidDetails}
                     className="mt-3 text-sm font-semibold text-amber-700 underline decoration-amber-300 underline-offset-4 hover:text-amber-800"
                   >
                     {showUnpaidDetails ? 'Hide unpaid records' : 'View unpaid records'}
@@ -738,11 +747,7 @@ const ProfitCalculator = () => {
                       <span className="text-sm text-slate-600">Unpaid Preview</span>
                       <button
                         type="button"
-                        onClick={() => {
-                          if ((salesData?.unpaidOrderCount || 0) > 0) {
-                            setShowUnpaidDetails((prev) => !prev);
-                          }
-                        }}
+                        onClick={openUnpaidDetails}
                         className={`font-semibold ${
                           (salesData?.unpaidOrderCount || 0) > 0
                             ? 'text-amber-700 underline decoration-amber-300 underline-offset-4 hover:text-amber-800'
@@ -857,12 +862,21 @@ const ProfitCalculator = () => {
                 </div>
 
                 {showUnpaidDetails && (
-                  <div className="rounded-2xl bg-white p-5 shadow-sm sm:p-6">
+                  <div ref={unpaidDetailsRef} className="rounded-2xl bg-white p-5 shadow-sm sm:p-6">
                     <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
                       <h2 className="text-lg font-semibold text-slate-900">Unpaid Records Behind Preview</h2>
-                      <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
-                        {salesData?.unpaidOrderCount || 0} order(s)
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
+                          {salesData?.unpaidOrderCount || 0} order(s)
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setShowUnpaidDetails(false)}
+                          className="rounded-md bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-200"
+                        >
+                          Hide
+                        </button>
+                      </div>
                     </div>
 
                     {(salesData?.unpaidOrders || []).length === 0 ? (
