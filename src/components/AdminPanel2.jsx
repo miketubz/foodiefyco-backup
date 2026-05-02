@@ -1490,6 +1490,12 @@ export const AdminPanel2 = () => {
                       PDF
                     </button>
                     <button
+                      onClick={() => handleDeliveryReceipt(order)}
+                      className="rounded-md bg-amber-600 px-3 py-2 text-xs text-white hover:bg-amber-700"
+                    >
+                      Deliver + Receipt
+                    </button>
+                    <button
                       onClick={() => handleArchiveSingle(order)}
                       disabled={!canArchive || !archiveSchemaReady || bulkArchiving}
                       className="rounded-md bg-purple-600 px-3 py-2 text-xs text-white disabled:bg-gray-300"
