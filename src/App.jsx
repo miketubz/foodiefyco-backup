@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import RequireAdmin from './components/RequireAdmin';
+import { ThemeProvider } from './context/ThemeContext';
 import { AdminPanel2 } from './components/AdminPanel2';
 import AdminExternalPage from './pages/AdminExternalPage';
 import AdminGalleryPage from './pages/AdminGalleryPage';
@@ -14,6 +15,7 @@ import ProfitCalculator from './pages/ProfitCalculator';
 
 function App() {
   return (
+    <ThemeProvider>
     <Routes>
       <Route path="/" element={<FrontendPage />} />
       <Route path="/gallery" element={<GalleryPage />} />
@@ -76,6 +78,7 @@ function App() {
       />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </ThemeProvider>
   );
 }
 

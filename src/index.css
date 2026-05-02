@@ -1,3 +1,158 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* =====================================================
+   THEME SYSTEM  –  data-theme applied to <html>
+   Themes: "light" (default Tailwind) | "dark" | "original" (teal)
+   ===================================================== */
+
+/* ── DARK THEME ── */
+[data-theme="dark"] body {
+  background-color: #111827;
+  color: #f9fafb;
+}
+
+[data-theme="dark"] .min-h-screen {
+  background: linear-gradient(to bottom, #111827, #0f172a) !important;
+}
+
+/* Navbar */
+[data-theme="dark"] nav.sticky {
+  background: rgba(17, 24, 39, 0.97) !important;
+  border-color: rgba(75, 85, 99, 0.5) !important;
+}
+
+/* White/light surfaces → dark cards */
+[data-theme="dark"] .bg-white {
+  background-color: #1f2937 !important;
+}
+[data-theme="dark"] .bg-white\/90 {
+  background-color: rgba(31, 41, 55, 0.9) !important;
+}
+[data-theme="dark"] .bg-white\/95 {
+  background-color: rgba(17, 24, 39, 0.97) !important;
+}
+[data-theme="dark"] .bg-gray-50 {
+  background-color: #1f2937 !important;
+}
+[data-theme="dark"] .bg-gray-100 {
+  background-color: #374151 !important;
+}
+
+/* Text */
+[data-theme="dark"] .text-gray-900 {
+  color: #f9fafb !important;
+}
+[data-theme="dark"] .text-gray-700 {
+  color: #d1d5db !important;
+}
+[data-theme="dark"] .text-gray-500 {
+  color: #9ca3af !important;
+}
+
+/* Borders */
+[data-theme="dark"] .border-gray-100 {
+  border-color: #374151 !important;
+}
+[data-theme="dark"] .border-gray-300 {
+  border-color: #4b5563 !important;
+}
+
+/* Inputs */
+[data-theme="dark"] input[type="text"],
+[data-theme="dark"] input[type="tel"],
+[data-theme="dark"] input[type="email"],
+[data-theme="dark"] input[type="number"],
+[data-theme="dark"] textarea,
+[data-theme="dark"] select {
+  background-color: #111827 !important;
+  color: #f9fafb !important;
+  border-color: #4b5563 !important;
+}
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: #6b7280 !important;
+}
+
+/* Orange-50 tinted pills/surfaces */
+[data-theme="dark"] .bg-orange-50 {
+  background-color: rgba(249, 115, 22, 0.12) !important;
+}
+[data-theme="dark"] .text-orange-600 {
+  color: #fb923c !important;
+}
+[data-theme="dark"] .from-orange-50 {
+  --tw-gradient-from: #1f2937 !important;
+}
+[data-theme="dark"] .to-amber-100 {
+  --tw-gradient-to: #374151 !important;
+}
+[data-theme="dark"] .from-orange-50.to-amber-100 {
+  background: linear-gradient(to bottom right, #1f2937, #374151) !important;
+}
+
+/* ── ORIGINAL (TEAL) THEME ── */
+[data-theme="original"] nav.sticky {
+  background: rgba(15, 118, 110, 0.97) !important;
+  border-color: rgba(13, 148, 136, 0.5) !important;
+}
+[data-theme="original"] nav .text-gray-900 {
+  color: #ffffff !important;
+}
+[data-theme="original"] nav .text-gray-500 {
+  color: rgba(255, 255, 255, 0.75) !important;
+}
+[data-theme="original"] nav .ring-orange-100 {
+  --tw-ring-color: #ccfbf1 !important;
+}
+
+/* Teal replaces orange for buttons & accents */
+[data-theme="original"] .bg-orange-500 {
+  background-color: #0d9488 !important;
+}
+[data-theme="original"] .hover\:bg-orange-600:hover {
+  background-color: #0f766e !important;
+}
+[data-theme="original"] .disabled\:bg-orange-300:disabled {
+  background-color: #5eead4 !important;
+}
+[data-theme="original"] .bg-orange-300 {
+  background-color: #5eead4 !important;
+}
+[data-theme="original"] .text-orange-500 {
+  color: #0d9488 !important;
+}
+[data-theme="original"] .text-orange-600 {
+  color: #0f766e !important;
+}
+[data-theme="original"] .text-orange-100 {
+  color: rgba(204, 251, 241, 0.9) !important;
+}
+[data-theme="original"] .text-orange-50 {
+  color: rgba(204, 251, 241, 0.7) !important;
+}
+[data-theme="original"] .bg-orange-50 {
+  background-color: #f0fdfa !important;
+}
+[data-theme="original"] .hover\:bg-orange-100:hover {
+  background-color: #ccfbf1 !important;
+}
+[data-theme="original"] .hover\:bg-orange-50:hover {
+  background-color: #ccfbf1 !important;
+}
+[data-theme="original"] .focus\:ring-orange-400:focus {
+  --tw-ring-color: #2dd4bf !important;
+}
+[data-theme="original"] .from-orange-50 {
+  --tw-gradient-from: #f0fdfa !important;
+}
+[data-theme="original"] .from-orange-50.to-amber-100 {
+  background: linear-gradient(to bottom right, #ccfbf1, #f0fdfa) !important;
+}
+[data-theme="original"] .ring-orange-400 {
+  --tw-ring-color: #2dd4bf !important;
+}
+[data-theme="original"] .border-orange-200\/60 {
+  border-color: rgba(45, 212, 191, 0.4) !important;
+}
