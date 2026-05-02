@@ -333,6 +333,11 @@ export const AdminPanel2 = () => {
   });
   const [salesRange, setSalesRange] = useState('today');
   const [previousSales, setPreviousSales] = useState(0);
+  const [deliveryReceiptDraft, setDeliveryReceiptDraft] = useState({
+    open: false,
+    order: null,
+    amount: '0',
+  });
 
   useEffect(() => {
     const loadAdmin = async () => {
@@ -927,6 +932,44 @@ export const AdminPanel2 = () => {
     receiptWindow.document.close();
   };
 
+  const printReceiptInline = (order, options = {}) => {
+    const iframe = document.createElement('iframe');
+    iframe.setAttribute('title', `Receipt ${order.orderId}`);
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    iframe.style.visibility = 'hidden';
+
+    document.body.appendChild(iframe);
+
+    const frameDocument = iframe.contentWindow?.document;
+    if (!frameDocument) {
+      document.body.removeChild(iframe);
+      window.alert('Unable to open the receipt preview. Please try again.');
+      return;
+    }
+
+    frameDocument.open();
+    frameDocument.write(buildReceiptHtml(order, options));
+    frameDocument.close();
+
+    iframe.onload = () => {
+      setTimeout(() => {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+
+        setTimeout(() => {
+          if (document.body.contains(iframe)) {
+            document.body.removeChild(iframe);
+          }
+        }, 1000);
+      }, 150);
+    };
+  };
+
   const handlePrintReceipt = (order) => {
     openReceiptWindow(order);
   };
@@ -936,21 +979,38 @@ export const AdminPanel2 = () => {
   };
 
   const handleDeliveryReceipt = (order) => {
-    const rawValue = window.prompt('Enter delivery charge for receipt only (example: 49 or 49.50):', '0');
+    setDeliveryReceiptDraft({
+      open: true,
+      order,
+      amount: '0',
+    });
+  };
 
-    if (rawValue === null) {
-      return;
-    }
+  const closeDeliveryReceiptModal = () => {
+    setDeliveryReceiptDraft({
+      open: false,
+      order: null,
+      amount: '0',
+    });
+  };
 
-    const normalizedValue = String(rawValue).replace(/[^0-9.]/g, '');
-    const deliveryCharge = Number(normalizedValue);
+  const handleConfirmDeliveryReceipt = (e) => {
+    e.preventDefault();
+
+    const normalizedValue = String(deliveryReceiptDraft.amount || '').replace(/[^0-9.]/g, '');
+    const deliveryCharge = Number(normalizedValue || '0');
 
     if (!Number.isFinite(deliveryCharge) || deliveryCharge < 0) {
       window.alert('Enter a valid delivery charge amount.');
       return;
     }
 
-    openReceiptWindow(order, { deliveryCharge });
+    const targetOrder = deliveryReceiptDraft.order;
+    closeDeliveryReceiptModal();
+
+    if (targetOrder) {
+      printReceiptInline(targetOrder, { deliveryCharge });
+    }
   };
 
   const handleSignOut = async () => {
@@ -1618,6 +1678,56 @@ export const AdminPanel2 = () => {
             </table>
           </div>
         </div>
+        {deliveryReceiptDraft.open && deliveryReceiptDraft.order && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl">
+              <h2 className="text-lg font-bold text-gray-900">Deliver + Receipt</h2>
+              <p className="mt-2 text-sm text-gray-600">
+                Enter the 3rd-party delivery charge for receipt printing only. This does not change sales or saved order totals.
+              </p>
+
+              <form onSubmit={handleConfirmDeliveryReceipt} className="mt-4 space-y-4">
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-gray-700" htmlFor="delivery-charge-input">
+                    Delivery charge
+                  </label>
+                  <input
+                    id="delivery-charge-input"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    inputMode="decimal"
+                    value={deliveryReceiptDraft.amount}
+                    onChange={(e) => setDeliveryReceiptDraft((prev) => ({ ...prev, amount: e.target.value }))}
+                    className="w-full rounded-xl border border-gray-300 px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-amber-400"
+                    placeholder="0.00"
+                    autoFocus
+                  />
+                </div>
+
+                <div className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                  Order: {deliveryReceiptDraft.order.customerName} • {formatCurrency(deliveryReceiptDraft.order.totalAmount)} base total
+                </div>
+
+                <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                  <button
+                    type="button"
+                    onClick={closeDeliveryReceiptModal}
+                    className="rounded-xl bg-gray-100 px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="rounded-xl bg-amber-600 px-4 py-3 text-sm font-semibold text-white hover:bg-amber-700"
+                  >
+                    Print / Save PDF
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
