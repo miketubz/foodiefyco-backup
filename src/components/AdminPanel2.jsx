@@ -506,11 +506,9 @@ export const AdminPanel2 = () => {
         (order) => String(order.payment_status || '').toLowerCase() === 'paid'
       );
 
-      const getNetSales = (order) =>
-        Math.max(
-          0,
-          Number(order.total_amount || 0) - Number(order.discount_amount || 0)
-        );
+      // `total_amount` is already the final payable amount in the orders table.
+      // Do not subtract discount again, or summary cards will be lower than table totals.
+      const getNetSales = (order) => Math.max(0, Number(order.total_amount || 0));
 
       const paidSales = paidRows.reduce(
         (sum, order) => sum + getNetSales(order),
