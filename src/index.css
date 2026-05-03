@@ -70,6 +70,15 @@
   color: #f9fafb !important;
   border-color: #4b5563 !important;
 }
+/* Date inputs – keep light background so browser-native calendar text/icon stays readable */
+[data-theme="dark"] input[type="date"] {
+  background-color: #f9fafb !important;
+  color: #111827 !important;
+  border-color: #4b5563 !important;
+}
+[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: none !important;
+}
 [data-theme="dark"] input::placeholder,
 [data-theme="dark"] textarea::placeholder {
   color: #6b7280 !important;
