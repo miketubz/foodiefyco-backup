@@ -101,6 +101,17 @@ const ProfitCalculator = () => {
     setActivePreset('month');
   };
 
+  const setLastMonth = () => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const end = new Date(now.getFullYear(), now.getMonth(), 0);
+    setDateRange({
+      start: formatDateInput(start),
+      end: formatDateInput(end),
+    });
+    setActivePreset('lastMonth');
+  };
+
   const updateDate = (field, value) => {
     setDateRange((prev) => ({ ...prev, [field]: value }));
     setActivePreset('');
@@ -539,6 +550,7 @@ const ProfitCalculator = () => {
                   { key: 'yesterday', label: 'Yesterday', onClick: setYesterday },
                   { key: 'last7', label: 'Last 7 Days', onClick: setLast7Days },
                   { key: 'month', label: 'This Month', onClick: setThisMonth },
+                  { key: 'lastMonth', label: 'Last Month', onClick: setLastMonth },
                 ].map((preset) => (
                   <button
                     key={preset.key}
