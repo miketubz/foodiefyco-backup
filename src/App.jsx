@@ -8,6 +8,7 @@ import AdminGalleryPage from './pages/AdminGalleryPage';
 import AdminHelpPage from './pages/AdminHelpPage';
 import AdminLoginPage from './pages/AdminLoginPage';
 import ArchivePage from './pages/ArchivePage';
+import ExpenseTrackerPage from './pages/ExpenseTrackerPage';
 import FrontendPage from './pages/FrontendPage';
 import GalleryPage from './pages/GalleryPage';
 import MenuAdminPanel from './pages/MenuAdminPanel';
@@ -57,6 +58,14 @@ function App() {
         element={(
           <RequireAdmin>
             <ProfitCalculator />
+          </RequireAdmin>
+        )}
+      />
+      <Route
+        path="/admin/expense-tracker"
+        element={(
+          <RequireAdmin>
+            <ExpenseTrackerPage />
           </RequireAdmin>
         )}
       />

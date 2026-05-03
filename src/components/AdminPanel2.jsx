@@ -1099,6 +1099,7 @@ export const AdminPanel2 = () => {
             <Link to="/" className="rounded-md bg-white px-4 py-2 text-gray-700 shadow hover:bg-gray-100">Front Store</Link>
             <Link to="/admin/external" className="rounded-md bg-white px-4 py-2 text-gray-700 shadow hover:bg-gray-100">Admin Orders</Link>
             <Link to="/admin/profit-calculator" className="rounded-md bg-white px-4 py-2 text-gray-700 shadow hover:bg-gray-100">Sales Management</Link>
+            <Link to="/admin/expense-tracker" className="rounded-md bg-white px-4 py-2 text-gray-700 shadow hover:bg-gray-100">Expense Tracker</Link>
             <Link to="/admin/archive" className="rounded-md bg-white px-4 py-2 text-gray-700 shadow hover:bg-gray-100">View Archive</Link>
             <Link to="/admin/menu" className="rounded-md bg-white px-4 py-2 text-gray-700 shadow hover:bg-gray-100">Manage Menu</Link>
              <Link to="/admin/help" className="rounded-md bg-white px-4 py-2 text-gray-700 shadow hover:bg-gray-100">Help</Link>
