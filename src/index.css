@@ -82,6 +82,26 @@
 [data-theme="dark"] .text-orange-600 {
   color: #fb923c !important;
 }
+
+/* Expected Sales card – blue-tinted dark (matches Fetch Orders blue reference) */
+[data-theme="dark"] .border-orange-100.bg-orange-50 {
+  background-color: rgba(37, 99, 235, 0.18) !important;
+  border-color: rgba(59, 130, 246, 0.35) !important;
+}
+[data-theme="dark"] .border-orange-100.bg-orange-50 .text-orange-700 {
+  color: #93c5fd !important;
+}
+[data-theme="dark"] .border-orange-100.bg-orange-50 .text-slate-900 {
+  color: #f1f5f9 !important;
+}
+[data-theme="dark"] .border-orange-100.bg-orange-50 .text-slate-600 {
+  color: #94a3b8 !important;
+}
+
+/* Table row hover – dark mode: use blue-tinted highlight instead of white */
+[data-theme="dark"] .hover\:bg-gray-50:hover {
+  background-color: rgba(37, 99, 235, 0.15) !important;
+}
 [data-theme="dark"] .from-orange-50 {
   --tw-gradient-from: #1f2937 !important;
 }
