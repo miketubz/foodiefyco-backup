@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { supabase } from '../lib/supabaseClient.js';
+import AdminThemeSwitcher from '../components/AdminThemeSwitcher';
 
 const formatCurrency = (value) =>
   `₱${Number(value || 0).toLocaleString('en-PH', {
@@ -487,6 +488,7 @@ export default function ArchivePage() {
             >
               Front Store
             </Link>
+            <AdminThemeSwitcher />
           </div>
         </div>
 

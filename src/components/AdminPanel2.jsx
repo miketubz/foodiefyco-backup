@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { generateOrdersCSV, downloadCSV } from '../utils/csvExport';
+import AdminThemeSwitcher from './AdminThemeSwitcher';
 
 const ARCHIVEABLE_STATUSES = new Set(['completed', 'cancelled']);
 
@@ -1105,6 +1106,7 @@ export const AdminPanel2 = () => {
             <button onClick={() => setShowPromoManager((prev) => !prev)} className="rounded-md bg-amber-500 px-4 py-2 text-white shadow hover:bg-amber-600">
               {showPromoManager ? 'Hide Promo Codes' : 'Manage Promo Codes'}
             </button>
+            <AdminThemeSwitcher />
             <button onClick={handleSignOut} className="rounded-md bg-white px-4 py-2 text-gray-700 shadow hover:bg-gray-100">Sign Out</button>
           </div>
         </div>

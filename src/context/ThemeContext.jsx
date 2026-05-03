@@ -1,10 +1,10 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 
-const ThemeContext = createContext({ theme: 'dark', setTheme: () => {} });
+const ThemeContext = createContext({ theme: 'light', setTheme: () => {} });
 
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(() => {
-    return localStorage.getItem('foodiefy-theme') || 'dark';
+    return localStorage.getItem('foodiefy-theme') || 'light';
   });
 
   useEffect(() => {

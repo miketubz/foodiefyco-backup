@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient.js';
+import AdminThemeSwitcher from '../components/AdminThemeSwitcher';
 
 export default function MenuAdminPanel() {
   const navigate = useNavigate();
@@ -193,6 +194,9 @@ export default function MenuAdminPanel() {
             >
               Sign Out
             </button>
+            <div className="flex justify-center lg:justify-end">
+              <AdminThemeSwitcher />
+            </div>
           </div>
         </div>
 
