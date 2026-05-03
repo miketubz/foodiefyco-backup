@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import AdminThemeSwitcher from '../components/AdminThemeSwitcher';
+import { supabase } from '../lib/supabaseClient.js';
 
 const STORAGE_KEY = 'foodiefy-expense-tracker-v1';
 const MAX_EXPENSE_ROWS = 50;
@@ -20,6 +21,13 @@ const formatCurrency = (value) =>
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;
+
+const toIsoStart = (date) => new Date(`${date}T00:00:00`).toISOString();
+const toIsoNextDay = (date) => {
+  const d = new Date(`${date}T00:00:00`);
+  d.setDate(d.getDate() + 1);
+  return d.toISOString();
+};
 
 const asDate = (yyyyMmDd) => new Date(`${yyyyMmDd}T00:00:00`);
 
@@ -72,6 +80,13 @@ export default function ExpenseTrackerPage() {
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
   const [pendingClear, setPendingClear] = useState(null);
+  const [showSalesFundsModal, setShowSalesFundsModal] = useState(false);
+  const [salesFundsRange, setSalesFundsRange] = useState(() => {
+    const today = formatDateInput(new Date());
+    return { startDate: today, endDate: today };
+  });
+  const [salesFundsLoading, setSalesFundsLoading] = useState(false);
+  const [salesFundsResult, setSalesFundsResult] = useState({ amount: 0, count: 0 });
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
@@ -206,6 +221,59 @@ export default function ExpenseTrackerPage() {
     setSavedFunds(amount);
     setError('');
     setMessage('Current funds saved.');
+  };
+
+  const handleComputeSalesFunds = async () => {
+    const { startDate, endDate } = salesFundsRange;
+    if (!startDate || !endDate) {
+      setError('Please select a valid start and end date.');
+      setMessage('');
+      return;
+    }
+    if (startDate > endDate) {
+      setError('Start date cannot be later than end date.');
+      setMessage('');
+      return;
+    }
+
+    setSalesFundsLoading(true);
+    setError('');
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('orders')
+        .select('id,total_amount,status,payment_status,created_at')
+        .gte('created_at', toIsoStart(startDate))
+        .lt('created_at', toIsoNextDay(endDate))
+        .ilike('status', 'completed')
+        .ilike('payment_status', 'paid');
+
+      if (fetchError) throw fetchError;
+
+      const rows = data || [];
+      const amount = rows.reduce((sum, row) => sum + Number(row.total_amount || 0), 0);
+      setSalesFundsResult({ amount, count: rows.length });
+    } catch (err) {
+      setSalesFundsResult({ amount: 0, count: 0 });
+      setError(err?.message || 'Failed to load paid and completed sales.');
+    } finally {
+      setSalesFundsLoading(false);
+    }
+  };
+
+  const handleApplySalesFunds = () => {
+    const addAmount = Number(salesFundsResult.amount || 0);
+    if (!Number.isFinite(addAmount) || addAmount <= 0) {
+      setError('No sales amount to add. Please compute first.');
+      setMessage('');
+      return;
+    }
+
+    const updated = Number(savedFunds || 0) + addAmount;
+    setSavedFunds(updated);
+    setCurrentFundsInput(String(updated));
+    setShowSalesFundsModal(false);
+    setError('');
+    setMessage(`Added ${formatCurrency(addAmount)} from paid + completed sales and saved current funds.`);
   };
 
   const handleClearAll = () => {
@@ -551,6 +619,18 @@ export default function ExpenseTrackerPage() {
                 </button>
                 <button
                   type="button"
+                  onClick={() => {
+                    const today = formatDateInput(new Date());
+                    setSalesFundsRange({ startDate: today, endDate: today });
+                    setSalesFundsResult({ amount: 0, count: 0 });
+                    setShowSalesFundsModal(true);
+                  }}
+                  className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                >
+                  Add Funds from Sales
+                </button>
+                <button
+                  type="button"
                   onClick={handleClearAll}
                   className="rounded-lg bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-300"
                 >
@@ -809,6 +889,77 @@ export default function ExpenseTrackerPage() {
                 className="rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800"
               >
                 Clear {pendingClear.scope}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showSalesFundsModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowSalesFundsModal(false);
+          }}
+        >
+          <div className="w-full rounded-t-2xl bg-white p-5 shadow-2xl sm:max-w-lg sm:rounded-2xl">
+            <h3 className="text-lg font-semibold text-slate-900">Add Funds from Sales</h3>
+            <p className="mt-2 text-sm text-slate-600">
+              Select a date or date range, then compute total sales to add.
+            </p>
+            <p className="mt-1 text-xs font-semibold text-amber-700">
+              Note: Only orders with status = completed and payment status = paid are included.
+            </p>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Start Date</label>
+                <input
+                  type="date"
+                  value={salesFundsRange.startDate}
+                  onChange={(e) => setSalesFundsRange((prev) => ({ ...prev, startDate: e.target.value }))}
+                  className="w-full rounded-xl border border-slate-300 px-3 py-2.5"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">End Date</label>
+                <input
+                  type="date"
+                  value={salesFundsRange.endDate}
+                  onChange={(e) => setSalesFundsRange((prev) => ({ ...prev, endDate: e.target.value }))}
+                  className="w-full rounded-xl border border-slate-300 px-3 py-2.5"
+                />
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <p className="text-sm text-slate-600">Matched Orders: <strong>{salesFundsResult.count}</strong></p>
+              <p className="mt-1 text-lg font-bold text-slate-900">Amount to Add: {formatCurrency(salesFundsResult.amount)}</p>
+            </div>
+
+            <div className="mt-4 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowSalesFundsModal(false)}
+                className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleComputeSalesFunds}
+                disabled={salesFundsLoading}
+                className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-900 disabled:cursor-not-allowed disabled:bg-slate-400"
+              >
+                {salesFundsLoading ? 'Loading...' : 'Compute Sales'}
+              </button>
+              <button
+                type="button"
+                onClick={handleApplySalesFunds}
+                disabled={salesFundsResult.amount <= 0}
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+              >
+                Add + Save
               </button>
             </div>
           </div>
