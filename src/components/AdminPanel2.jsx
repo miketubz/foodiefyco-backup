@@ -1107,6 +1107,10 @@ export const AdminPanel2 = () => {
   };
 
   const renderProofContent = (order) => {
+    if (order.orderSource === 'external') {
+      return <span className="text-xs text-gray-500">Not required</span>;
+    }
+
     if (order.paymentProofUrl) {
       return (
         <a href={order.paymentProofUrl} target="_blank" rel="noreferrer" className="text-blue-600 underline">
