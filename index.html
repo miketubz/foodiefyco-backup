@@ -7,7 +7,25 @@
     <title>foodie</title>
     <script>
       (function () {
-        var t = localStorage.getItem('foodiefy-theme') || 'light';
+        var mode = localStorage.getItem('foodiefy-theme-mode');
+        var manualTheme = localStorage.getItem('foodiefy-theme');
+
+        function getAutoThemeByHour(hour) {
+          if (hour >= 6 && hour < 12) return 'original';
+          if (hour >= 12 && hour < 18) return 'light';
+          return 'dark';
+        }
+
+        var phHour = parseInt(
+          new Intl.DateTimeFormat('en-US', {
+            hour: '2-digit',
+            hour12: false,
+            timeZone: 'Asia/Manila'
+          }).format(new Date()),
+          10
+        );
+
+        var t = mode === 'manual' && manualTheme ? manualTheme : getAutoThemeByHour(phHour);
         document.documentElement.setAttribute('data-theme', t);
       })();
     </script>
