@@ -334,7 +334,7 @@ export const AdminPanel2 = () => {
     paidCount: 0,
     expectedCount: 0,
   });
-  const [salesRange, setSalesRange] = useState('today');
+  const [salesRange, setSalesRange] = useState('all');
   const [previousSales, setPreviousSales] = useState(0);
   const [deliveryReceiptDraft, setDeliveryReceiptDraft] = useState({
     open: false,
@@ -426,6 +426,10 @@ export const AdminPanel2 = () => {
       const currentRangeRows = rows.filter((order) => {
         const orderDateKey = formatDateInput(new Date(order.created_at));
 
+        if (salesRange === 'all') {
+          return true;
+        }
+
         if (salesRange === 'today') {
           return orderDateKey === todayKey;
         }
@@ -451,6 +455,10 @@ export const AdminPanel2 = () => {
 
       const previousRangeRows = rows.filter((order) => {
         const orderDateKey = formatDateInput(new Date(order.created_at));
+
+        if (salesRange === 'all') {
+          return false;
+        }
 
         if (salesRange === 'today') {
           return orderDateKey === yesterdayKey;
@@ -507,6 +515,9 @@ export const AdminPanel2 = () => {
         0
       );
 
+      const normalizedPreviousSales =
+        salesRange === 'all' ? expectedSales : previousExpectedSales;
+
       setTodaySalesSummary({
         paidSales,
         expectedSales,
@@ -514,12 +525,11 @@ export const AdminPanel2 = () => {
         expectedCount: currentRangeRows.length,
       });
 
-      setPreviousSales(previousExpectedSales);
+      setPreviousSales(normalizedPreviousSales);
     } catch (err) {
       console.error('Failed to load sales summary:', err);
     }
   };
-
 
   const handleCreatePromoCode = async (e) => {
     e.preventDefault();
@@ -1115,6 +1125,7 @@ export const AdminPanel2 = () => {
         <div className="mb-6 rounded-2xl bg-white p-4 shadow-sm sm:p-5">
           <div className="mb-4 flex flex-wrap gap-2">
             {[
+              { key: 'all', label: 'All Dates' },
               { key: 'today', label: 'Today' },
               { key: 'yesterday', label: 'Yesterday' },
               { key: 'week', label: 'This Week' },
