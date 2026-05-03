@@ -335,6 +335,9 @@ export const AdminPanel2 = () => {
     expectedCount: 0,
   });
   const [salesRange, setSalesRange] = useState('all');
+  const [customSalesRange, setCustomSalesRange] = useState({ startDate: '', endDate: '' });
+  const [showSalesRangeModal, setShowSalesRangeModal] = useState(false);
+  const [salesRangeDraft, setSalesRangeDraft] = useState({ startDate: '', endDate: '' });
   const [previousSales, setPreviousSales] = useState(0);
   const [deliveryReceiptDraft, setDeliveryReceiptDraft] = useState({
     open: false,
@@ -355,7 +358,7 @@ export const AdminPanel2 = () => {
 
   useEffect(() => {
     loadSalesSummary();
-  }, [salesRange]);
+  }, [salesRange, customSalesRange.startDate, customSalesRange.endDate]);
 
   useEffect(() => {
     const channel = supabase
@@ -372,7 +375,7 @@ export const AdminPanel2 = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [salesRange]);
+  }, [salesRange, customSalesRange.startDate, customSalesRange.endDate]);
 
   const loadPromoCodes = async () => {
     setPromoLoading(true);
@@ -430,6 +433,11 @@ export const AdminPanel2 = () => {
           return true;
         }
 
+        if (salesRange === 'custom') {
+          if (!customSalesRange.startDate || !customSalesRange.endDate) return false;
+          return orderDateKey >= customSalesRange.startDate && orderDateKey <= customSalesRange.endDate;
+        }
+
         if (salesRange === 'today') {
           return orderDateKey === todayKey;
         }
@@ -457,6 +465,10 @@ export const AdminPanel2 = () => {
         const orderDateKey = formatDateInput(new Date(order.created_at));
 
         if (salesRange === 'all') {
+          return false;
+        }
+
+        if (salesRange === 'custom') {
           return false;
         }
 
@@ -516,7 +528,7 @@ export const AdminPanel2 = () => {
       );
 
       const normalizedPreviousSales =
-        salesRange === 'all' ? expectedSales : previousExpectedSales;
+        salesRange === 'all' || salesRange === 'custom' ? expectedSales : previousExpectedSales;
 
       setTodaySalesSummary({
         paidSales,
@@ -824,6 +836,30 @@ export const AdminPanel2 = () => {
     }
     setFilters(nextFilters);
     await fetchOrders(nextFilters);
+  };
+
+  const handleOpenSalesRangeModal = () => {
+    setSalesRangeDraft({
+      startDate: customSalesRange.startDate || filters.startDate || '',
+      endDate: customSalesRange.endDate || filters.endDate || '',
+    });
+    setShowSalesRangeModal(true);
+  };
+
+  const handleApplySalesDateRange = () => {
+    const { startDate, endDate } = salesRangeDraft;
+    if (!startDate || !endDate) {
+      setActionError('Please select both start and end date for sales summary range.');
+      return;
+    }
+    if (startDate > endDate) {
+      setActionError('Start date cannot be after end date for sales summary range.');
+      return;
+    }
+    setCustomSalesRange({ startDate, endDate });
+    setSalesRange('custom');
+    setActionError('');
+    setShowSalesRangeModal(false);
   };
 
   const handleStatusChange = async (orderId, newStatus) => {
@@ -1144,6 +1180,17 @@ export const AdminPanel2 = () => {
                 {option.label}
               </button>
             ))}
+            <button
+              type="button"
+              onClick={handleOpenSalesRangeModal}
+              className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                salesRange === 'custom'
+                  ? 'bg-orange-500 text-white'
+                  : 'bg-orange-50 text-orange-600 hover:bg-orange-100'
+              }`}
+            >
+              Date Range
+            </button>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -1171,7 +1218,7 @@ export const AdminPanel2 = () => {
                   ? 'text-emerald-700'
                   : 'text-red-600'
               }`}>
-                {todaySalesSummary.expectedSales - previousSales >= 0 ? '▲' : '▼'} {formatCurrency(Math.abs(todaySalesSummary.expectedSales - previousSales))} vs previous {salesRange === 'week' ? '7 days' : salesRange === 'lastMonth' ? 'month' : 'period'}
+                {todaySalesSummary.expectedSales - previousSales >= 0 ? '▲' : '▼'} {formatCurrency(Math.abs(todaySalesSummary.expectedSales - previousSales))} vs previous {salesRange === 'week' ? '7 days' : salesRange === 'lastMonth' ? 'month' : salesRange === 'custom' ? 'selected range' : 'period'}
               </p>
               <p className="mt-1 text-sm text-slate-600">
                 {todaySalesSummary.expectedCount} non-cancelled order(s)
@@ -1694,6 +1741,60 @@ export const AdminPanel2 = () => {
             </table>
           </div>
         </div>
+        {showSalesRangeModal && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setShowSalesRangeModal(false);
+            }}
+          >
+            <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl">
+              <h2 className="text-lg font-bold text-gray-900">Sales Summary Date Range</h2>
+              <p className="mt-1 text-sm text-gray-600">
+                Select a date range to filter Paid Sales and Expected Sales cards.
+              </p>
+
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Start Date</label>
+                  <input
+                    type="date"
+                    value={salesRangeDraft.startDate}
+                    onChange={(e) => setSalesRangeDraft((prev) => ({ ...prev, startDate: e.target.value }))}
+                    className="w-full rounded-xl border border-gray-300 px-3 py-2.5"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">End Date</label>
+                  <input
+                    type="date"
+                    value={salesRangeDraft.endDate}
+                    onChange={(e) => setSalesRangeDraft((prev) => ({ ...prev, endDate: e.target.value }))}
+                    className="w-full rounded-xl border border-gray-300 px-3 py-2.5"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-4 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowSalesRangeModal(false)}
+                  className="rounded-xl bg-gray-100 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleApplySalesDateRange}
+                  className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
+                >
+                  Apply Range
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {deliveryReceiptDraft.open && deliveryReceiptDraft.order && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
             <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl">
