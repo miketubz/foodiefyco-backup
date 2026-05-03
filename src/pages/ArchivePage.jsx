@@ -391,6 +391,17 @@ export default function ArchivePage() {
     }, 250);
   };
 
+  const handlePrintSelected = () => {
+    const selected = orders.filter((o) => selectedIds.includes(o.orderId));
+    if (!selected.length) { setError('No orders selected to print.'); return; }
+    const printWindow = window.open('', '_blank', 'width=1300,height=900');
+    if (!printWindow) return;
+    printWindow.document.write(buildArchiveReportHtml(selected, { ...filters, note: `Selected ${selected.length} row(s)` }));
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => { printWindow.print(); }, 250);
+  };
+
   const handleExportPdf = () => {
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
 
@@ -440,6 +451,43 @@ export default function ArchivePage() {
     doc.save(`archived-orders-${dateStamp}.pdf`);
   };
 
+  const handleExportPdfSelected = () => {
+    const selected = orders.filter((o) => selectedIds.includes(o.orderId));
+    if (!selected.length) { setError('No orders selected to export.'); return; }
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    doc.setFontSize(16);
+    doc.text('FoodiefyCo - Selected Archived Orders', 14, 14);
+    doc.setFontSize(9);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 20);
+    doc.text(`Rows: ${selected.length} (selected)`, 14, 25);
+    const head = [['ID', 'Customer', 'Total', 'Status', 'Payment', 'Ordered', 'Archived', 'Reason']];
+    const body = selected.map((order) => [
+      order.orderId,
+      order.customerName || '—',
+      formatCurrency(order.totalAmount),
+      order.status,
+      order.paymentMethod || '—',
+      formatDateTime(order.createdAt),
+      formatDateTime(order.archivedAt),
+      order.archiveReason || '—',
+    ]);
+    doc.autoTable({
+      head, body, startY: 30,
+      styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak' },
+      headStyles: { fillColor: [51, 65, 85], textColor: 255 },
+      columnStyles: {
+        0: { cellWidth: 38 }, 1: { cellWidth: 30 }, 2: { halign: 'right', cellWidth: 20 },
+        3: { cellWidth: 20 }, 4: { cellWidth: 22 }, 5: { cellWidth: 35 }, 6: { cellWidth: 35 }, 7: { cellWidth: 'auto' },
+      },
+      didDrawPage: (data) => {
+        const pageCount = doc.internal.getNumberOfPages();
+        doc.setFontSize(8);
+        doc.text(`Page ${data.pageNumber} of ${pageCount}`, data.settings.margin.left, doc.internal.pageSize.height - 5);
+      },
+    });
+    doc.save(`archived-orders-selected-${new Date().toISOString().slice(0, 10)}.pdf`);
+  };
+
   const handleExportExcel = () => {
     if (!orders.length) {
       setError('No archived orders to export.');
@@ -452,6 +500,21 @@ export default function ArchivePage() {
     const link = document.createElement('a');
     link.href = url;
     link.download = `archived-orders-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportExcelSelected = () => {
+    const selected = orders.filter((o) => selectedIds.includes(o.orderId));
+    if (!selected.length) { setError('No orders selected to export.'); return; }
+    const csv = buildArchiveCsv(selected);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `archived-orders-selected-${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -481,6 +544,13 @@ export default function ArchivePage() {
               className="rounded-lg bg-slate-700 px-4 py-2.5 font-semibold text-white hover:bg-slate-800"
             >
               Print
+            </button>
+            <button
+              onClick={handlePrintSelected}
+              disabled={!selectedIds.length}
+              className="rounded-lg bg-indigo-600 px-4 py-2.5 font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+            >
+              Print Selected ({selectedIds.length})
             </button>
             <Link
               to="/"
@@ -604,6 +674,22 @@ export default function ArchivePage() {
               className="rounded-lg bg-emerald-600 px-4 py-2.5 font-semibold text-white hover:bg-emerald-700"
             >
               Export Excel/CSV
+            </button>
+
+            <button
+              onClick={handleExportPdfSelected}
+              disabled={!selectedIds.length}
+              className="rounded-lg bg-fuchsia-800 px-4 py-2.5 font-semibold text-white hover:bg-fuchsia-900 disabled:cursor-not-allowed disabled:bg-slate-300"
+            >
+              Export PDF Selected ({selectedIds.length})
+            </button>
+
+            <button
+              onClick={handleExportExcelSelected}
+              disabled={!selectedIds.length}
+              className="rounded-lg bg-emerald-800 px-4 py-2.5 font-semibold text-white hover:bg-emerald-900 disabled:cursor-not-allowed disabled:bg-slate-300"
+            >
+              Export CSV Selected ({selectedIds.length})
             </button>
           </div>
         </div>
