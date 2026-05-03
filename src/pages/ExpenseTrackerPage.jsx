@@ -268,12 +268,17 @@ export default function ExpenseTrackerPage() {
       return;
     }
 
-    const updated = Number(savedFunds || 0) + addAmount;
+    const typedFunds = Number(currentFundsInput);
+    const baseFunds = Number.isFinite(typedFunds) && typedFunds >= 0
+      ? typedFunds
+      : Number(savedFunds || 0);
+
+    const updated = baseFunds + addAmount;
     setSavedFunds(updated);
     setCurrentFundsInput(String(updated));
     setShowSalesFundsModal(false);
     setError('');
-    setMessage(`Added ${formatCurrency(addAmount)} from paid + completed sales and saved current funds.`);
+    setMessage(`Added ${formatCurrency(addAmount)} from paid + completed sales. Current funds is now ${formatCurrency(updated)}.`);
   };
 
   const handleClearAll = () => {
