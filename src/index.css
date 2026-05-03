@@ -149,10 +149,11 @@
   background-color: #1f2937 !important;
 }
 
-/* Disabled buttons – keep dark in dark mode so text stays readable */
+/* Disabled buttons – blue+white in dark mode to match Back to Admin reference */
 [data-theme="dark"] .disabled\:bg-slate-300:disabled {
-  background-color: #374151 !important;
-  color: #9ca3af !important;
+  background-color: #2563eb !important;
+  color: #ffffff !important;
+  opacity: 0.55 !important;
 }
 
 /* ── SLATE BORDERS ── */
