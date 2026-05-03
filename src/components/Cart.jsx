@@ -50,7 +50,24 @@ function Cart({
     <div className="fixed inset-0 z-50 flex justify-end bg-black/50">
       <div className="flex h-full w-full max-w-lg flex-col bg-white shadow-2xl">
         <div className="flex items-center justify-between border-b bg-orange-500 px-5 py-4 text-white">
-          <h2 className="text-xl font-bold">🛒 Your Cart</h2>
+          <h2 className="flex items-center gap-2 text-xl font-bold">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+              className="h-6 w-6"
+              aria-hidden="true"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M2.25 3h1.386c.51 0 .955.343 1.087.837L5.82 8.25m0 0h12.87c.923 0 1.635.816 1.51 1.73l-.795 5.565a1.5 1.5 0 01-1.486 1.305H8.24a1.5 1.5 0 01-1.486-1.305L5.82 8.25zM5.82 8.25L5.094 4.44M9.75 20.25a.75.75 0 100-1.5.75.75 0 000 1.5zm8.25 0a.75.75 0 100-1.5.75.75 0 000 1.5z"
+              />
+            </svg>
+            <span>Your Cart</span>
+          </h2>
           <button
             onClick={onClose}
             disabled={isSubmitting || isApplyingPromo}
