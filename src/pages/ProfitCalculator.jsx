@@ -902,86 +902,142 @@ const ProfitCalculator = () => {
                   </div>
                 </div>
 
-                {showUnpaidDetails && (
-                  <div ref={unpaidDetailsRef} className="rounded-2xl bg-white p-5 shadow-sm sm:p-6">
-                    <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-                      <h2 className="text-lg font-semibold text-slate-900">Unpaid Records Behind Preview</h2>
-                      <div className="flex items-center gap-2">
-                        <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
-                          {salesData?.unpaidOrderCount || 0} order(s)
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setShowUnpaidDetails(false)}
-                          className="rounded-md bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-200"
-                        >
-                          Hide
-                        </button>
-                      </div>
-                    </div>
-
-                    {(salesData?.unpaidOrders || []).length === 0 ? (
-                      <div className="rounded-xl border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-500">
-                        No unpaid rows in this range.
-                      </div>
-                    ) : (
-                      <div className="overflow-x-auto">
-                        <table className="min-w-full text-sm">
-                          <thead className="bg-slate-100 text-slate-700">
-                            <tr>
-                              <th className="px-3 py-2 text-left">Customer</th>
-                              <th className="px-3 py-2 text-left">Created</th>
-                              <th className="px-3 py-2 text-left">Status</th>
-                              <th className="px-3 py-2 text-left">Payment Status</th>
-                              <th className="px-3 py-2 text-right">Net Amount</th>
-                              <th className="px-3 py-2 text-right">Action</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {(salesData?.unpaidOrders || []).map((order) => (
-                              <tr key={order.id} className="border-b border-slate-200 align-top">
-                                <td className="max-w-[220px] break-words px-3 py-2 font-medium text-slate-900">{String(order.customer_name || 'Unknown')}</td>
-                                <td className="px-3 py-2 text-slate-700">{formatDateTime(order.created_at)}</td>
-                                <td className="px-3 py-2">
-                                  <span className="inline-block rounded bg-slate-100 px-2 py-1 text-xs font-semibold capitalize text-slate-700">
-                                    {String(order.status || 'unknown')}
-                                  </span>
-                                </td>
-                                <td className="px-3 py-2">
-                                  <span className="inline-block rounded bg-amber-100 px-2 py-1 text-xs font-semibold capitalize text-amber-800">
-                                    {String(order.payment_status || 'unknown')}
-                                  </span>
-                                </td>
-                                <td className="px-3 py-2 text-right font-semibold text-slate-900">
-                                  {formatCurrency(getNetAmount(order))}
-                                </td>
-                                <td className="px-3 py-2 text-right">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleMarkPaid(order.id)}
-                                    disabled={updatingOrderId === order.id}
-                                    className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
-                                  >
-                                    {updatingOrderId === order.id ? 'Updating...' : 'Mark Paid'}
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-
-                    <p className="mt-3 text-xs text-slate-500">
-                      Note: Completed orders can still appear here if their payment status is not paid.
-                    </p>
-                  </div>
-                )}
               </div>
             </div>
           </section>
         </div>
       </div>
+
+      {/* ── Unpaid Records Modal ── */}
+      {showUnpaidDetails && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowUnpaidDetails(false); }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="unpaid-modal-title"
+        >
+          <div className="flex max-h-[92dvh] w-full flex-col rounded-t-2xl bg-white shadow-2xl sm:max-h-[85vh] sm:max-w-3xl sm:rounded-2xl">
+            {/* Header */}
+            <div className="flex flex-shrink-0 items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
+              <div className="flex items-center gap-2">
+                <h2 id="unpaid-modal-title" className="text-base font-semibold text-slate-900 sm:text-lg">
+                  Unpaid Records Behind Preview
+                </h2>
+                <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800">
+                  {salesData?.unpaidOrderCount || 0} order(s)
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowUnpaidDetails(false)}
+                className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200"
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-5">
+              {(salesData?.unpaidOrders || []).length === 0 ? (
+                <div className="rounded-xl border border-dashed border-slate-300 px-4 py-10 text-center text-sm text-slate-500">
+                  No unpaid rows in this range.
+                </div>
+              ) : (
+                <>
+                  {/* Mobile cards */}
+                  <div className="space-y-3 sm:hidden">
+                    {(salesData?.unpaidOrders || []).map((order) => (
+                      <div key={order.id} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="font-semibold text-slate-900">{String(order.customer_name || 'Unknown')}</p>
+                          <span className="rounded bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
+                            {String(order.payment_status || 'unknown')}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-xs text-slate-500">{formatDateTime(order.created_at)}</p>
+                        <div className="mt-2 flex items-center justify-between">
+                          <span className="text-sm font-bold text-slate-900">{formatCurrency(getNetAmount(order))}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleMarkPaid(order.id)}
+                            disabled={updatingOrderId === order.id}
+                            className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                          >
+                            {updatingOrderId === order.id ? 'Updating…' : 'Mark Paid'}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Desktop table */}
+                  <div className="hidden overflow-x-auto sm:block">
+                    <table className="min-w-full text-sm">
+                      <thead className="bg-slate-100 text-slate-700">
+                        <tr>
+                          <th className="px-3 py-2 text-left">Customer</th>
+                          <th className="px-3 py-2 text-left">Created</th>
+                          <th className="px-3 py-2 text-left">Status</th>
+                          <th className="px-3 py-2 text-left">Payment Status</th>
+                          <th className="px-3 py-2 text-right">Net Amount</th>
+                          <th className="px-3 py-2 text-right">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(salesData?.unpaidOrders || []).map((order) => (
+                          <tr key={order.id} className="border-b border-slate-200 align-top">
+                            <td className="max-w-[200px] break-words px-3 py-2 font-medium text-slate-900">{String(order.customer_name || 'Unknown')}</td>
+                            <td className="px-3 py-2 text-slate-700">{formatDateTime(order.created_at)}</td>
+                            <td className="px-3 py-2">
+                              <span className="inline-block rounded bg-slate-100 px-2 py-1 text-xs font-semibold capitalize text-slate-700">
+                                {String(order.status || 'unknown')}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2">
+                              <span className="inline-block rounded bg-amber-100 px-2 py-1 text-xs font-semibold capitalize text-amber-800">
+                                {String(order.payment_status || 'unknown')}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2 text-right font-semibold text-slate-900">
+                              {formatCurrency(getNetAmount(order))}
+                            </td>
+                            <td className="px-3 py-2 text-right">
+                              <button
+                                type="button"
+                                onClick={() => handleMarkPaid(order.id)}
+                                disabled={updatingOrderId === order.id}
+                                className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                              >
+                                {updatingOrderId === order.id ? 'Updating…' : 'Mark Paid'}
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="flex flex-shrink-0 items-center justify-between border-t border-slate-200 px-5 py-3">
+              <p className="text-xs text-slate-500">
+                Completed orders may appear here if payment status is not paid.
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowUnpaidDetails(false)}
+                className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-900"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
