@@ -447,51 +447,6 @@ function FrontendPage() {
           </div>
         )}
 
-        {orderConfirmation && (
-          <div className="mb-6 rounded-3xl border border-green-200 bg-green-50 p-5 text-green-900 shadow-sm">
-            <h2 className="mb-2 text-xl font-bold">Order Confirmed</h2>
-            <p className="mb-1">Order ID: {orderConfirmation.orderId}</p>
-            <p className="mb-1">Name: {orderConfirmation.name}</p>
-            <p className="mb-1">Phone: {orderConfirmation.phone}</p>
-            <p className="mb-1">Address: {orderConfirmation.address}</p>
-            <p className="mb-1">Payment Method: {orderConfirmation.paymentMethod}</p>
-            <p className="mb-1">Proof Option: {orderConfirmation.paymentProofOption}</p>
-            <p className="mb-1">
-              Proof Uploaded: {orderConfirmation.paymentProofUploaded ? 'Yes' : 'No'}
-            </p>
-            <p className="mb-1">Promo Code: {orderConfirmation.promoCode}</p>
-            <p className="mb-1">Items: {orderConfirmation.itemCount}</p>
-            <p className="mb-1">
-              Special Instructions: {orderConfirmation.specialInstructions || 'None'}
-            </p>
-
-            {orderConfirmation.items && (
-              <div className="mb-3 mt-3">
-                <p className="mb-2 font-semibold">Ordered Items:</p>
-                <ul className="list-disc space-y-1 pl-5">
-                  {orderConfirmation.items.map((item, index) => (
-                    <li key={index}>
-                      {item.name} — x{item.quantity} — ₱{item.subtotal.toFixed(2)}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            <p className="mb-1">Subtotal: ₱{orderConfirmation.subtotal.toFixed(2)}</p>
-            <p className="mb-1 text-green-700">
-              Discount: -₱{orderConfirmation.discountAmount.toFixed(2)}
-            </p>
-            <p className="mb-3 font-semibold">Total: ₱{orderConfirmation.total.toFixed(2)}</p>
-            <button
-              onClick={() => setOrderConfirmation(null)}
-              className="rounded-xl bg-green-600 px-4 py-2 text-white hover:bg-green-700"
-            >
-              Close
-            </button>
-          </div>
-        )}
-
         <section className="mb-6 flex justify-center px-4 text-center">
           <div className="w-full max-w-2xl">
             <p className="mb-2 text-lg font-bold uppercase tracking-[0.28em] text-orange-500 sm:text-xl">
@@ -611,6 +566,71 @@ function FrontendPage() {
           promoMessage={promoMessage}
           promoError={promoError}
         />
+      )}
+
+      {orderConfirmation && (
+        <div
+          className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setOrderConfirmation(null);
+          }}
+        >
+          <div className="flex max-h-[92dvh] w-full flex-col rounded-t-2xl bg-white shadow-2xl sm:max-h-[85vh] sm:max-w-lg sm:rounded-2xl">
+            <div className="flex items-center justify-between border-b px-5 py-4">
+              <h2 className="text-lg font-bold text-green-700">Thank you! We have received your order.</h2>
+              <button
+                onClick={() => setOrderConfirmation(null)}
+                className="rounded-full bg-gray-100 px-3 py-1 text-xl font-bold text-gray-700 hover:bg-gray-200"
+                aria-label="Close confirmation"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-5 py-4">
+              <p className="mb-2 text-sm text-gray-600">Order ID: <span className="font-semibold text-gray-900">{orderConfirmation.orderId}</span></p>
+
+              <div className="mb-4 rounded-xl border border-gray-200 bg-gray-50 p-3">
+                <p className="text-sm font-semibold text-gray-800">Order Summary</p>
+                <ul className="mt-2 space-y-1 text-sm text-gray-700">
+                  {(orderConfirmation.items || []).map((item, index) => (
+                    <li key={index} className="flex items-center justify-between gap-3">
+                      <span className="truncate">{item.name} x{item.quantity}</span>
+                      <span className="font-semibold">₱{item.subtotal.toFixed(2)}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-3 border-t pt-2 text-sm text-gray-700">
+                  <div className="flex items-center justify-between">
+                    <span>Subtotal</span>
+                    <span>₱{orderConfirmation.subtotal.toFixed(2)}</span>
+                  </div>
+                  <div className="mt-1 flex items-center justify-between text-green-700">
+                    <span>Discount</span>
+                    <span>-₱{orderConfirmation.discountAmount.toFixed(2)}</span>
+                  </div>
+                  <div className="mt-1 flex items-center justify-between font-bold text-gray-900">
+                    <span>Total</span>
+                    <span>₱{orderConfirmation.total.toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
+                If you enjoyed our food, feel free to provide feedback on our page, and get a chance to win a promo code.
+              </div>
+            </div>
+
+            <div className="border-t px-5 py-4">
+              <button
+                onClick={() => setOrderConfirmation(null)}
+                className="w-full rounded-xl bg-green-600 px-4 py-3 font-semibold text-white hover:bg-green-700"
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
