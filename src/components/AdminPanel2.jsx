@@ -22,6 +22,14 @@ const DEFAULT_PROMO_FORM = {
 };
 
 const DELIVERY_RECEIPT_PRESETS = ['0', '40', '60', '80', '100'];
+const THANK_YOU_TITLE_KEY = 'thank_you_modal_title';
+const THANK_YOU_BODY_KEY = 'thank_you_modal_body';
+const LOCAL_THANK_YOU_TITLE_KEY = 'foodiefy-thankyou-title';
+const LOCAL_THANK_YOU_BODY_KEY = 'foodiefy-thankyou-body';
+const DEFAULT_THANK_YOU_CONTENT = {
+  title: 'Thank you! We have received your order.',
+  body: 'If you enjoyed our food, feel free to provide feedback on our page, and get a chance to win a promo code.',
+};
 
 
 const formatDateInput = (date) => {
@@ -339,11 +347,82 @@ export const AdminPanel2 = () => {
   const [showSalesRangeModal, setShowSalesRangeModal] = useState(false);
   const [salesRangeDraft, setSalesRangeDraft] = useState({ startDate: '', endDate: '' });
   const [previousSales, setPreviousSales] = useState(0);
+  const [showThankYouEditor, setShowThankYouEditor] = useState(false);
+  const [savingThankYou, setSavingThankYou] = useState(false);
+  const [thankYouTitleInput, setThankYouTitleInput] = useState(DEFAULT_THANK_YOU_CONTENT.title);
+  const [thankYouBodyInput, setThankYouBodyInput] = useState(DEFAULT_THANK_YOU_CONTENT.body);
   const [deliveryReceiptDraft, setDeliveryReceiptDraft] = useState({
     open: false,
     order: null,
     amount: '0',
   });
+
+  const loadThankYouContent = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('app_settings')
+        .select('key, value')
+        .in('key', [THANK_YOU_TITLE_KEY, THANK_YOU_BODY_KEY]);
+
+      if (error) throw error;
+
+      const settingsMap = Object.fromEntries((data || []).map((row) => [row.key, row.value]));
+      const title = settingsMap[THANK_YOU_TITLE_KEY] || localStorage.getItem(LOCAL_THANK_YOU_TITLE_KEY) || DEFAULT_THANK_YOU_CONTENT.title;
+      const body = settingsMap[THANK_YOU_BODY_KEY] || localStorage.getItem(LOCAL_THANK_YOU_BODY_KEY) || DEFAULT_THANK_YOU_CONTENT.body;
+
+      localStorage.setItem(LOCAL_THANK_YOU_TITLE_KEY, title);
+      localStorage.setItem(LOCAL_THANK_YOU_BODY_KEY, body);
+      setThankYouTitleInput(title);
+      setThankYouBodyInput(body);
+    } catch {
+      const title = localStorage.getItem(LOCAL_THANK_YOU_TITLE_KEY) || DEFAULT_THANK_YOU_CONTENT.title;
+      const body = localStorage.getItem(LOCAL_THANK_YOU_BODY_KEY) || DEFAULT_THANK_YOU_CONTENT.body;
+      setThankYouTitleInput(title);
+      setThankYouBodyInput(body);
+    }
+  };
+
+  const handleSaveThankYouContent = async () => {
+    const title = String(thankYouTitleInput || '').trim();
+    const body = String(thankYouBodyInput || '').trim();
+
+    if (!title || !body) {
+      setActionError('Both thank-you title and body are required.');
+      return;
+    }
+
+    setSavingThankYou(true);
+    setActionError('');
+    setSuccessMessage('');
+
+    try {
+      const payload = [
+        { key: THANK_YOU_TITLE_KEY, value: title },
+        { key: THANK_YOU_BODY_KEY, value: body },
+      ];
+
+      const { error } = await supabase
+        .from('app_settings')
+        .upsert(payload, { onConflict: 'key' });
+
+      if (error) throw error;
+
+      localStorage.setItem(LOCAL_THANK_YOU_TITLE_KEY, title);
+      localStorage.setItem(LOCAL_THANK_YOU_BODY_KEY, body);
+      setSuccessMessage('Thank-you modal text updated successfully.');
+      setShowThankYouEditor(false);
+    } catch (err) {
+      localStorage.setItem(LOCAL_THANK_YOU_TITLE_KEY, title);
+      localStorage.setItem(LOCAL_THANK_YOU_BODY_KEY, body);
+      setSuccessMessage('Saved locally. If DB settings table is unavailable, this device will still use the updated text.');
+      setShowThankYouEditor(false);
+      if (err?.message) {
+        setActionError(`DB settings save failed: ${err.message}`);
+      }
+    } finally {
+      setSavingThankYou(false);
+    }
+  };
 
   useEffect(() => {
     const loadAdmin = async () => {
@@ -354,6 +433,7 @@ export const AdminPanel2 = () => {
     loadAdmin();
     loadPromoCodes();
     loadSalesSummary();
+    loadThankYouContent();
   }, []);
 
   useEffect(() => {
@@ -1155,6 +1235,13 @@ export const AdminPanel2 = () => {
             <button onClick={() => setShowPromoManager((prev) => !prev)} className="rounded-md bg-amber-500 px-4 py-2 text-white shadow hover:bg-amber-600">
               {showPromoManager ? 'Hide Promo Codes' : 'Manage Promo Codes'}
             </button>
+            <button
+              type="button"
+              onClick={() => setShowThankYouEditor(true)}
+              className="rounded-md bg-sky-600 px-4 py-2 text-white shadow hover:bg-sky-700"
+            >
+              Thank You Message
+            </button>
             <AdminThemeSwitcher />
             <button onClick={handleSignOut} className="rounded-md bg-white px-4 py-2 text-gray-700 shadow hover:bg-gray-100">Sign Out</button>
           </div>
@@ -1743,6 +1830,64 @@ export const AdminPanel2 = () => {
             </table>
           </div>
         </div>
+        {showThankYouEditor && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setShowThankYouEditor(false);
+            }}
+          >
+            <div className="w-full max-w-xl rounded-2xl bg-white p-5 shadow-2xl">
+              <h2 className="text-lg font-bold text-gray-900">Edit Thank You Modal Text</h2>
+              <p className="mt-1 text-sm text-gray-600">
+                This controls the customer popup shown right after placing an order.
+              </p>
+
+              <div className="mt-4 space-y-4">
+                <div>
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Title</label>
+                  <input
+                    type="text"
+                    value={thankYouTitleInput}
+                    onChange={(e) => setThankYouTitleInput(e.target.value)}
+                    className="w-full rounded-xl border border-gray-300 px-3 py-2.5"
+                    placeholder="Thank you! We have received your order."
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Body Message</label>
+                  <textarea
+                    value={thankYouBodyInput}
+                    onChange={(e) => setThankYouBodyInput(e.target.value)}
+                    rows={4}
+                    className="w-full rounded-xl border border-gray-300 px-3 py-2.5"
+                    placeholder="If you enjoyed our food..."
+                  />
+                </div>
+              </div>
+
+              <div className="mt-4 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowThankYouEditor(false)}
+                  className="rounded-xl bg-gray-100 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-200"
+                  disabled={savingThankYou}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveThankYouContent}
+                  className="rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-700 disabled:bg-gray-300"
+                  disabled={savingThankYou}
+                >
+                  {savingThankYou ? 'Saving...' : 'Save Message'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {showSalesRangeModal && (
           <div
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"

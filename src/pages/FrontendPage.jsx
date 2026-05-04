@@ -6,6 +6,16 @@ import Cart from '../components/Cart';
 import { useMenuItems } from '../hooks/useMenuItems';
 import { supabase } from '../lib/supabaseClient.js';
 
+const THANK_YOU_TITLE_KEY = 'thank_you_modal_title';
+const THANK_YOU_BODY_KEY = 'thank_you_modal_body';
+const LOCAL_THANK_YOU_TITLE_KEY = 'foodiefy-thankyou-title';
+const LOCAL_THANK_YOU_BODY_KEY = 'foodiefy-thankyou-body';
+
+const DEFAULT_THANK_YOU_CONTENT = {
+  title: 'Thank you! We have received your order.',
+  body: 'If you enjoyed our food, feel free to provide feedback on our page, and get a chance to win a promo code.',
+};
+
 function FrontendPage() {
   const { menuItems, loading, error } = useMenuItems();
   const [cartItems, setCartItems] = useState([]);
@@ -22,6 +32,7 @@ function FrontendPage() {
   const [paymentProofFile, setPaymentProofFile] = useState(null);
 
   const [orderConfirmation, setOrderConfirmation] = useState(null);
+  const [thankYouContent, setThankYouContent] = useState(DEFAULT_THANK_YOU_CONTENT);
   const [orderError, setOrderError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [discountAmount, setDiscountAmount] = useState(0);
@@ -84,6 +95,33 @@ function FrontendPage() {
       setPaymentProofFile(null);
     }
   }, [paymentMethod]);
+
+  useEffect(() => {
+    const loadThankYouContent = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('app_settings')
+          .select('key, value')
+          .in('key', [THANK_YOU_TITLE_KEY, THANK_YOU_BODY_KEY]);
+
+        if (error) throw error;
+
+        const settingsMap = Object.fromEntries((data || []).map((row) => [row.key, row.value]));
+        const title = settingsMap[THANK_YOU_TITLE_KEY] || localStorage.getItem(LOCAL_THANK_YOU_TITLE_KEY) || DEFAULT_THANK_YOU_CONTENT.title;
+        const body = settingsMap[THANK_YOU_BODY_KEY] || localStorage.getItem(LOCAL_THANK_YOU_BODY_KEY) || DEFAULT_THANK_YOU_CONTENT.body;
+
+        localStorage.setItem(LOCAL_THANK_YOU_TITLE_KEY, title);
+        localStorage.setItem(LOCAL_THANK_YOU_BODY_KEY, body);
+        setThankYouContent({ title, body });
+      } catch {
+        const title = localStorage.getItem(LOCAL_THANK_YOU_TITLE_KEY) || DEFAULT_THANK_YOU_CONTENT.title;
+        const body = localStorage.getItem(LOCAL_THANK_YOU_BODY_KEY) || DEFAULT_THANK_YOU_CONTENT.body;
+        setThankYouContent({ title, body });
+      }
+    };
+
+    loadThankYouContent();
+  }, []);
 
   const isPlaceholderValue = (value) => {
     const normalized = value.trim().toLowerCase().replace(/\./g, '');
@@ -577,7 +615,7 @@ function FrontendPage() {
         >
           <div className="flex max-h-[92dvh] w-full flex-col rounded-t-2xl bg-white shadow-2xl sm:max-h-[85vh] sm:max-w-lg sm:rounded-2xl">
             <div className="flex items-center justify-between border-b px-5 py-4">
-              <h2 className="text-lg font-bold text-green-700">Thank you! We have received your order.</h2>
+              <h2 className="text-lg font-bold text-green-700">{thankYouContent.title}</h2>
               <button
                 onClick={() => setOrderConfirmation(null)}
                 className="rounded-full bg-gray-100 px-3 py-1 text-xl font-bold text-gray-700 hover:bg-gray-200"
@@ -617,7 +655,7 @@ function FrontendPage() {
               </div>
 
               <div className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
-                If you enjoyed our food, feel free to provide feedback on our page, and get a chance to win a promo code.
+                {thankYouContent.body}
               </div>
             </div>
 
