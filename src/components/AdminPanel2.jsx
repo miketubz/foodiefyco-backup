@@ -49,6 +49,19 @@ const toIsoNextDay = (date) => {
 
 const formatCurrency = (value) => `₱${Number(value || 0).toFixed(2)}`;
 
+const isOrderTotalModified = (order) => {
+  const itemTotal = (order.orderItems || []).reduce(
+    (sum, item) => sum + Number(item.subtotal || Number(item.quantity || 0) * Number(item.price || 0)),
+    0
+  );
+
+  const subtotal = itemTotal || Number(order.totalAmount || 0) + Number(order.discountAmount || 0);
+  const expectedTotal = Math.max(0, subtotal - Number(order.discountAmount || 0));
+  const currentTotal = Number(order.totalAmount || 0);
+
+  return Math.abs(currentTotal - expectedTotal) > 0.009;
+};
+
 const escapeHtml = (value) =>
   String(value ?? '')
     .replaceAll('&', '&amp;')
@@ -79,7 +92,9 @@ const buildReceiptHtml = (order, options = {}) => {
 
   const subtotal = itemTotal || Number(order.totalAmount || 0) + Number(order.discountAmount || 0);
   const receiptGrandTotal = Number(order.totalAmount || 0) + deliveryCharge;
-  const totalsLabel = deliveryCharge > 0 ? 'Amount Due' : 'Total';
+  const totalsLabel = deliveryCharge > 0
+    ? 'Amount Due'
+    : (isOrderTotalModified(order) ? 'Seller Price Total' : 'Total');
 
   return `
     <!DOCTYPE html>
@@ -230,6 +245,7 @@ const buildReceiptHtml = (order, options = {}) => {
             <div class="totals-row"><span>Subtotal</span><span>${formatCurrency(subtotal)}</span></div>
             <div class="totals-row"><span>Discount</span><span>-${formatCurrency(order.discountAmount)}</span></div>
             ${deliveryCharge > 0 ? `<div class="totals-row"><span>Delivery Charge (3rd party)</span><span>${formatCurrency(deliveryCharge)}</span></div>` : ''}
+            ${!deliveryCharge && isOrderTotalModified(order) ? '<div class="totals-row"><span class="muted">Adjusted by seller</span><span class="muted">Yes</span></div>' : ''}
             <div class="totals-row total"><span>${totalsLabel}</span><span>${formatCurrency(receiptGrandTotal)}</span></div>
           </div>
 
@@ -1678,6 +1694,7 @@ export const AdminPanel2 = () => {
               const canArchive = ARCHIVEABLE_STATUSES.has(order.status) && !order.isArchived;
               const isSelected = selectedOrderIds.includes(order.orderId);
               const canEditTotal = !Boolean(String(order.promoCode || '').trim()) && Number(order.discountAmount || 0) <= 0;
+              const hasModifiedTotal = isOrderTotalModified(order);
               return (
                 <div key={order.orderId} className="rounded-xl border border-gray-200 p-4">
                   <div className="mb-2 flex items-start justify-between gap-3">
@@ -1746,6 +1763,14 @@ export const AdminPanel2 = () => {
                     >
                       Print
                     </button>
+                    {hasModifiedTotal && (
+                      <button
+                        onClick={() => handlePrintReceipt(order)}
+                        className="rounded-md bg-violet-600 px-3 py-2 text-xs text-white hover:bg-violet-700"
+                      >
+                        Print Modified
+                      </button>
+                    )}
                     <button
                       onClick={() => handlePdfReceipt(order)}
                       className="rounded-md bg-emerald-600 px-3 py-2 text-xs text-white hover:bg-emerald-700"
@@ -1805,6 +1830,7 @@ export const AdminPanel2 = () => {
                   const isExpanded = expandedOrderId === order.orderId;
                   const canArchive = ARCHIVEABLE_STATUSES.has(order.status) && !order.isArchived;
                   const canEditTotal = !Boolean(String(order.promoCode || '').trim()) && Number(order.discountAmount || 0) <= 0;
+                  const hasModifiedTotal = isOrderTotalModified(order);
                   return (
                     <React.Fragment key={order.orderId}>
                       <tr className="border-b align-top hover:bg-gray-50">
@@ -1858,6 +1884,11 @@ export const AdminPanel2 = () => {
                             <button onClick={() => handlePrintReceipt(order)} className="rounded-md bg-sky-600 px-3 py-2 text-sm text-white hover:bg-sky-700">
                               Print
                             </button>
+                            {hasModifiedTotal && (
+                              <button onClick={() => handlePrintReceipt(order)} className="rounded-md bg-violet-600 px-3 py-2 text-sm text-white hover:bg-violet-700">
+                                Print Modified
+                              </button>
+                            )}
                             <button onClick={() => handlePdfReceipt(order)} className="rounded-md bg-emerald-600 px-3 py-2 text-sm text-white hover:bg-emerald-700">
                               PDF
                             </button>
