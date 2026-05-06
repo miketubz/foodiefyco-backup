@@ -959,6 +959,12 @@ export const AdminPanel2 = () => {
   };
 
   const handleEditTotalAmount = async (order) => {
+    const hasDiscountApplied = Boolean(String(order.promoCode || '').trim()) || Number(order.discountAmount || 0) > 0;
+    if (hasDiscountApplied) {
+      setActionError('Total amount can only be edited when no promo code or discount is applied.');
+      return;
+    }
+
     const currentValue = Number(order.totalAmount || 0).toFixed(2);
     const inputValue = window.prompt(`Edit total amount for order ${order.orderId}:`, currentValue);
     if (inputValue === null) return;
@@ -1671,6 +1677,7 @@ export const AdminPanel2 = () => {
             {filteredOrders.map((order) => {
               const canArchive = ARCHIVEABLE_STATUSES.has(order.status) && !order.isArchived;
               const isSelected = selectedOrderIds.includes(order.orderId);
+              const canEditTotal = !Boolean(String(order.promoCode || '').trim()) && Number(order.discountAmount || 0) <= 0;
               return (
                 <div key={order.orderId} className="rounded-xl border border-gray-200 p-4">
                   <div className="mb-2 flex items-start justify-between gap-3">
@@ -1691,8 +1698,9 @@ export const AdminPanel2 = () => {
                     <button
                       type="button"
                       onClick={() => handleEditTotalAmount(order)}
-                      disabled={savingOrderId === order.orderId}
+                      disabled={savingOrderId === order.orderId || !canEditTotal}
                       className="rounded-md bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-200 disabled:bg-gray-200"
+                      title={canEditTotal ? 'Edit total amount' : 'Disabled because promo/discount is applied'}
                     >
                       {savingOrderId === order.orderId ? 'Saving...' : 'Edit Total'}
                     </button>
@@ -1796,6 +1804,7 @@ export const AdminPanel2 = () => {
                 {filteredOrders.map((order) => {
                   const isExpanded = expandedOrderId === order.orderId;
                   const canArchive = ARCHIVEABLE_STATUSES.has(order.status) && !order.isArchived;
+                  const canEditTotal = !Boolean(String(order.promoCode || '').trim()) && Number(order.discountAmount || 0) <= 0;
                   return (
                     <React.Fragment key={order.orderId}>
                       <tr className="border-b align-top hover:bg-gray-50">
@@ -1826,8 +1835,9 @@ export const AdminPanel2 = () => {
                             <button
                               type="button"
                               onClick={() => handleEditTotalAmount(order)}
-                              disabled={savingOrderId === order.orderId}
+                              disabled={savingOrderId === order.orderId || !canEditTotal}
                               className="rounded-md bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-200 disabled:bg-gray-200"
+                              title={canEditTotal ? 'Edit total amount' : 'Disabled because promo/discount is applied'}
                             >
                               {savingOrderId === order.orderId ? 'Saving...' : 'Edit Total'}
                             </button>
