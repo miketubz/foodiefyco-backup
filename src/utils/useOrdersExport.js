@@ -20,8 +20,7 @@ export const exportSelectedArchiveToPDF = (orders) => {
   // Calculate totals
   const totalRevenue = orders.reduce((sum, order) => {
     const amount = parseFloat(order.total_amount) || 0;
-    const discount = parseFloat(order.discount_amount) || 0;
-    return sum + (amount - discount);
+    return sum + amount;
   }, 0);
 
   doc.text(`Total Revenue: ₱${totalRevenue.toFixed(2)}`, 14, 40);

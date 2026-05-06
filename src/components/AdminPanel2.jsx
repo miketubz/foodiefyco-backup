@@ -958,6 +958,39 @@ export const AdminPanel2 = () => {
     await fetchOrders(filters);
   };
 
+  const handleEditTotalAmount = async (order) => {
+    const currentValue = Number(order.totalAmount || 0).toFixed(2);
+    const inputValue = window.prompt(`Edit total amount for order ${order.orderId}:`, currentValue);
+    if (inputValue === null) return;
+
+    const normalized = String(inputValue).trim();
+    if (!normalized) {
+      setActionError('Total amount is required.');
+      return;
+    }
+
+    const nextAmount = Number(normalized);
+    if (!Number.isFinite(nextAmount) || nextAmount < 0) {
+      setActionError('Please enter a valid total amount (0 or higher).');
+      return;
+    }
+
+    setSavingOrderId(order.orderId);
+    const { error: updateError } = await supabase
+      .from('orders')
+      .update({ total_amount: Number(nextAmount.toFixed(2)) })
+      .eq('id', order.orderId);
+    setSavingOrderId(null);
+
+    if (updateError) {
+      setActionError(updateError.message || 'Failed to update total amount.');
+      return;
+    }
+
+    setSuccessMessage('Total amount updated.');
+    await fetchOrders(filters);
+  };
+
   const archiveOrdersByIds = async (orderIds, archiveReason) => {
     if (!archiveSchemaReady) {
       setActionError('Archive columns are not available yet. Run the SQL migration in supabase/migrations.');
@@ -1653,7 +1686,17 @@ export const AdminPanel2 = () => {
                   </div>
                   <p className="text-sm text-gray-700">{order.itemsSummary}</p>
                   <div className="mt-2 text-sm text-gray-600">Payment: {order.paymentMethod} • {order.paymentStatus}</div>
-                  <div className="mt-2 text-sm text-gray-600">Total: ₱{Number(order.totalAmount || 0).toFixed(2)}</div>
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-gray-600">
+                    <span>Total: ₱{Number(order.totalAmount || 0).toFixed(2)}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleEditTotalAmount(order)}
+                      disabled={savingOrderId === order.orderId}
+                      className="rounded-md bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-200 disabled:bg-gray-200"
+                    >
+                      {savingOrderId === order.orderId ? 'Saving...' : 'Edit Total'}
+                    </button>
+                  </div>
                   <div className="mt-2 grid gap-2 sm:grid-cols-2">
                     <label className="text-sm text-gray-600">
                       <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Payment Status</span>
@@ -1777,7 +1820,19 @@ export const AdminPanel2 = () => {
                         <td className="px-4 py-3 text-right">-₱{Number(order.discountAmount || 0).toFixed(2)}</td>
                         <td className="px-4 py-3">{order.itemsSummary}</td>
                         <td className="px-4 py-3 text-center">{order.itemCount}</td>
-                        <td className="px-4 py-3 text-right">₱{Number(order.totalAmount || 0).toFixed(2)}</td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex flex-col items-end gap-2">
+                            <span>₱{Number(order.totalAmount || 0).toFixed(2)}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleEditTotalAmount(order)}
+                              disabled={savingOrderId === order.orderId}
+                              className="rounded-md bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-200 disabled:bg-gray-200"
+                            >
+                              {savingOrderId === order.orderId ? 'Saving...' : 'Edit Total'}
+                            </button>
+                          </div>
+                        </td>
                         <td className="px-4 py-3">
                           <select value={order.status} onChange={(e) => handleStatusChange(order.orderId, e.target.value)} disabled={savingOrderId === order.orderId} className="rounded-md border border-gray-300 px-3 py-2">
                             <option value="pending">Pending</option>

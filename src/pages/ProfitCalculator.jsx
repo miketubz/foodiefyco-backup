@@ -41,8 +41,7 @@ const getBusinessDateKey = (value) =>
 
 const getNetAmount = (order) => {
   const amount = parseFloat(order.total_amount) || 0;
-  const discount = parseFloat(order.discount_amount) || 0;
-  return Math.max(0, amount - discount);
+  return Math.max(0, amount);
 };
 
 const ProfitCalculator = () => {
