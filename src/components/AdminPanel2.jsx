@@ -22,6 +22,7 @@ const DEFAULT_PROMO_FORM = {
 };
 
 const DELIVERY_RECEIPT_PRESETS = ['0', '40', '60', '80', '100'];
+const ORDER_NOTES_STORAGE_KEY = 'foodiefy-admin-order-notes-v1';
 const THANK_YOU_TITLE_KEY = 'thank_you_modal_title';
 const THANK_YOU_BODY_KEY = 'thank_you_modal_body';
 const LOCAL_THANK_YOU_TITLE_KEY = 'foodiefy-thankyou-title';
@@ -372,6 +373,26 @@ export const AdminPanel2 = () => {
     order: null,
     amount: '0',
   });
+  const [orderNotes, setOrderNotes] = useState(() => {
+    try {
+      const raw = localStorage.getItem(ORDER_NOTES_STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : {};
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch {
+      return {};
+    }
+  });
+  const [noteDraft, setNoteDraft] = useState({
+    open: false,
+    orderId: '',
+    customerName: '',
+    text: '',
+    editing: false,
+  });
+
+  useEffect(() => {
+    localStorage.setItem(ORDER_NOTES_STORAGE_KEY, JSON.stringify(orderNotes));
+  }, [orderNotes]);
 
   const loadThankYouContent = async () => {
     try {
@@ -1164,6 +1185,46 @@ export const AdminPanel2 = () => {
     });
   };
 
+  const handleOpenNoteModal = (order) => {
+    const existingText = String(orderNotes[order.orderId] || '');
+    setNoteDraft({
+      open: true,
+      orderId: order.orderId,
+      customerName: order.customerName,
+      text: existingText,
+      editing: !existingText,
+    });
+  };
+
+  const handleCloseNoteModal = () => {
+    setNoteDraft({
+      open: false,
+      orderId: '',
+      customerName: '',
+      text: '',
+      editing: false,
+    });
+  };
+
+  const handleSaveNote = () => {
+    const orderId = noteDraft.orderId;
+    if (!orderId) return;
+
+    const trimmedText = String(noteDraft.text || '').trim();
+    setOrderNotes((prev) => {
+      const next = { ...prev };
+      if (!trimmedText) {
+        delete next[orderId];
+      } else {
+        next[orderId] = trimmedText;
+      }
+      return next;
+    });
+
+    setSuccessMessage('Order note saved.');
+    setNoteDraft((prev) => ({ ...prev, text: trimmedText, editing: false }));
+  };
+
   const closeDeliveryReceiptModal = () => {
     setDeliveryReceiptDraft({
       open: false,
@@ -1771,7 +1832,14 @@ export const AdminPanel2 = () => {
                       onClick={() => handleDeliveryReceipt(order)}
                       className="rounded-md bg-amber-600 px-3 py-2 text-xs text-white hover:bg-amber-700"
                     >
-                      Deliver + Receipt
+                      With DF
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenNoteModal(order)}
+                      className="rounded-md bg-fuchsia-600 px-3 py-2 text-xs text-white hover:bg-fuchsia-700"
+                    >
+                      +Note
                     </button>
                     <button
                       onClick={() => handleArchiveSingle(order)}
@@ -1880,7 +1948,14 @@ export const AdminPanel2 = () => {
                               </button>
                             )}
                             <button onClick={() => handleDeliveryReceipt(order)} className="rounded-md bg-amber-600 px-3 py-2 text-sm text-white hover:bg-amber-700">
-                              Deliver + Receipt
+                              With DF
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenNoteModal(order)}
+                              className="rounded-md bg-fuchsia-600 px-3 py-2 text-sm text-white hover:bg-fuchsia-700"
+                            >
+                              +Note
                             </button>
                             <button onClick={() => handleArchiveSingle(order)} disabled={!canArchive || !archiveSchemaReady || bulkArchiving} className="rounded-md bg-purple-600 px-3 py-2 text-sm text-white disabled:bg-gray-300">
                               Archive
@@ -2028,7 +2103,7 @@ export const AdminPanel2 = () => {
         {deliveryReceiptDraft.open && deliveryReceiptDraft.order && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
             <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl">
-              <h2 className="text-lg font-bold text-gray-900">Deliver + Receipt</h2>
+              <h2 className="text-lg font-bold text-gray-900">With DF</h2>
               <p className="mt-2 text-sm text-gray-600">
                 Enter the 3rd-party delivery charge for receipt printing only. This does not change sales or saved order totals.
               </p>
@@ -2098,6 +2173,59 @@ export const AdminPanel2 = () => {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {noteDraft.open && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) handleCloseNoteModal();
+            }}
+          >
+            <div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl">
+              <h2 className="text-lg font-bold text-gray-900">Order Note</h2>
+              <p className="mt-1 text-sm text-gray-600">
+                Order: {noteDraft.customerName || 'N/A'} ({noteDraft.orderId || 'N/A'})
+              </p>
+
+              <div className="mt-4">
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Note</label>
+                <textarea
+                  value={noteDraft.text}
+                  onChange={(e) => setNoteDraft((prev) => ({ ...prev, text: e.target.value }))}
+                  rows={6}
+                  disabled={!noteDraft.editing}
+                  className="w-full rounded-xl border border-gray-300 px-3 py-2.5 disabled:bg-gray-100"
+                  placeholder="Type your order note here..."
+                />
+              </div>
+
+              <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={handleCloseNoteModal}
+                  className="rounded-xl bg-gray-100 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-200"
+                >
+                  Exit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setNoteDraft((prev) => ({ ...prev, editing: true }))}
+                  className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveNote}
+                  disabled={!noteDraft.editing}
+                  className="rounded-xl bg-fuchsia-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-fuchsia-700 disabled:bg-gray-300"
+                >
+                  Save
+                </button>
+              </div>
             </div>
           </div>
         )}
