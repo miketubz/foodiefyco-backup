@@ -288,6 +288,11 @@ const isArchiveSchemaError = (error) => {
   return message.includes('is_archived') || message.includes('archived_at') || message.includes('archive_reason') || message.includes('archived_by');
 };
 
+const isAppSettingsMissingError = (error) => {
+  const message = String(error?.message || '').toLowerCase();
+  return message.includes('could not find the table') && message.includes('app_settings');
+};
+
 const getPublicProofUrl = (path) => {
   if (!path) return '';
   if (/^https?:\/\//i.test(path)) return path;
@@ -443,11 +448,15 @@ export const AdminPanel2 = () => {
       localStorage.setItem(LOCAL_THANK_YOU_BODY_KEY, body);
       setThankYouTitleInput(title);
       setThankYouBodyInput(body);
-    } catch {
+    } catch (err) {
       const title = localStorage.getItem(LOCAL_THANK_YOU_TITLE_KEY) || DEFAULT_THANK_YOU_CONTENT.title;
       const body = localStorage.getItem(LOCAL_THANK_YOU_BODY_KEY) || DEFAULT_THANK_YOU_CONTENT.body;
       setThankYouTitleInput(title);
       setThankYouBodyInput(body);
+
+      if (!isAppSettingsMissingError(err) && err?.message) {
+        setActionError(`Failed to load thank-you text from DB: ${err.message}`);
+      }
     }
   };
 
@@ -483,9 +492,9 @@ export const AdminPanel2 = () => {
     } catch (err) {
       localStorage.setItem(LOCAL_THANK_YOU_TITLE_KEY, title);
       localStorage.setItem(LOCAL_THANK_YOU_BODY_KEY, body);
-      setSuccessMessage('Saved locally. If DB settings table is unavailable, this device will still use the updated text.');
+      setSuccessMessage('Saved locally. Cloud sync is unavailable until the app_settings table is restored.');
       setShowThankYouEditor(false);
-      if (err?.message) {
+      if (err?.message && !isAppSettingsMissingError(err)) {
         setActionError(`DB settings save failed: ${err.message}`);
       }
     } finally {
