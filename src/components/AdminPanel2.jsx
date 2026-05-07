@@ -1839,7 +1839,7 @@ export const AdminPanel2 = () => {
                       onClick={() => handleOpenNoteModal(order)}
                       className="rounded-md bg-fuchsia-600 px-3 py-2 text-xs text-white hover:bg-fuchsia-700"
                     >
-                      +Note
+                      Add/View Notes
                     </button>
                     <button
                       onClick={() => handleArchiveSingle(order)}
@@ -1955,7 +1955,7 @@ export const AdminPanel2 = () => {
                               onClick={() => handleOpenNoteModal(order)}
                               className="rounded-md bg-fuchsia-600 px-3 py-2 text-sm text-white hover:bg-fuchsia-700"
                             >
-                              +Note
+                              Add/View Notes
                             </button>
                             <button onClick={() => handleArchiveSingle(order)} disabled={!canArchive || !archiveSchemaReady || bulkArchiving} className="rounded-md bg-purple-600 px-3 py-2 text-sm text-white disabled:bg-gray-300">
                               Archive
