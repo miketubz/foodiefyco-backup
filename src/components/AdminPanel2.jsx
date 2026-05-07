@@ -1752,6 +1752,7 @@ export const AdminPanel2 = () => {
               const isSelected = selectedOrderIds.includes(order.orderId);
               const canEditTotal = !Boolean(String(order.promoCode || '').trim()) && Number(order.discountAmount || 0) <= 0;
               const hasModifiedTotal = isOrderTotalModified(order);
+              const hasNote = Boolean(orderNotes[order.orderId]);
               return (
                 <div key={order.orderId} className="rounded-xl border border-gray-200 p-4">
                   <div className="mb-2 flex items-start justify-between gap-3">
@@ -1837,8 +1838,9 @@ export const AdminPanel2 = () => {
                     <button
                       type="button"
                       onClick={() => handleOpenNoteModal(order)}
-                      className="rounded-md bg-fuchsia-600 px-3 py-2 text-xs text-white hover:bg-fuchsia-700"
+                      className={`rounded-md px-3 py-2 text-xs text-white flex items-center gap-1 ${hasNote ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-fuchsia-600 hover:bg-fuchsia-700'}`}
                     >
+                      {hasNote && <span>✎</span>}
                       Add/View Notes
                     </button>
                     <button
@@ -1889,6 +1891,7 @@ export const AdminPanel2 = () => {
                   const canArchive = ARCHIVEABLE_STATUSES.has(order.status) && !order.isArchived;
                   const canEditTotal = !Boolean(String(order.promoCode || '').trim()) && Number(order.discountAmount || 0) <= 0;
                   const hasModifiedTotal = isOrderTotalModified(order);
+                  const hasNote = Boolean(orderNotes[order.orderId]);
                   return (
                     <React.Fragment key={order.orderId}>
                       <tr className="border-b align-top hover:bg-gray-50">
@@ -1953,8 +1956,9 @@ export const AdminPanel2 = () => {
                             <button
                               type="button"
                               onClick={() => handleOpenNoteModal(order)}
-                              className="rounded-md bg-fuchsia-600 px-3 py-2 text-sm text-white hover:bg-fuchsia-700"
+                              className={`rounded-md px-3 py-2 text-sm text-white flex items-center gap-1 ${hasNote ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-fuchsia-600 hover:bg-fuchsia-700'}`}
                             >
+                              {hasNote && <span>✎</span>}
                               Add/View Notes
                             </button>
                             <button onClick={() => handleArchiveSingle(order)} disabled={!canArchive || !archiveSchemaReady || bulkArchiving} className="rounded-md bg-purple-600 px-3 py-2 text-sm text-white disabled:bg-gray-300">
