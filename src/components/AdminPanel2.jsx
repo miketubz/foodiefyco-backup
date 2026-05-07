@@ -1838,9 +1838,9 @@ export const AdminPanel2 = () => {
                     <button
                       type="button"
                       onClick={() => handleOpenNoteModal(order)}
-                      className={`rounded-md px-3 py-2 text-xs text-white flex items-center gap-1 ${hasNote ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-fuchsia-600 hover:bg-fuchsia-700'}`}
+                      className="rounded-md bg-gray-900 px-3 py-2 text-xs text-white flex items-center gap-1 hover:bg-gray-700"
                     >
-                      {hasNote && <span>✎</span>}
+                      {hasNote && <span className="text-white">&#9999;</span>}
                       Add/View Notes
                     </button>
                     <button
@@ -1956,9 +1956,9 @@ export const AdminPanel2 = () => {
                             <button
                               type="button"
                               onClick={() => handleOpenNoteModal(order)}
-                              className={`rounded-md px-3 py-2 text-sm text-white flex items-center gap-1 ${hasNote ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-fuchsia-600 hover:bg-fuchsia-700'}`}
+                              className="rounded-md bg-gray-900 px-3 py-2 text-sm text-white flex items-center gap-1 hover:bg-gray-700"
                             >
-                              {hasNote && <span>✎</span>}
+                              {hasNote && <span className="text-white">&#9999;</span>}
                               Add/View Notes
                             </button>
                             <button onClick={() => handleArchiveSingle(order)} disabled={!canArchive || !archiveSchemaReady || bulkArchiving} className="rounded-md bg-purple-600 px-3 py-2 text-sm text-white disabled:bg-gray-300">
