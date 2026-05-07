@@ -1868,7 +1868,7 @@ export const AdminPanel2 = () => {
                   <div className="mt-3 flex flex-wrap gap-2">
                     <button
                       onClick={() => setExpandedOrderId(expandedOrderId === order.orderId ? null : order.orderId)}
-                      className="rounded-md bg-gray-900 px-3 py-2 text-xs text-white"
+                      className="rounded-md bg-indigo-900 px-3 py-2 text-xs text-white hover:bg-indigo-800"
                     >
                       {expandedOrderId === order.orderId ? 'Hide' : 'View'}
                     </button>
@@ -1898,7 +1898,7 @@ export const AdminPanel2 = () => {
                       className="rounded-md bg-gray-900 px-3 py-2 text-xs text-white flex items-center gap-1 hover:bg-gray-700"
                     >
                       {hasNote && <span className="text-white">&#9999;</span>}
-                      Add/View Notes
+                      Notes
                     </button>
                     <button
                       onClick={() => handleArchiveSingle(order)}
@@ -1996,7 +1996,7 @@ export const AdminPanel2 = () => {
                         </td>
                         <td className="px-4 py-3 text-center">
                           <div className="flex flex-wrap justify-center gap-2">
-                            <button onClick={() => setExpandedOrderId(isExpanded ? null : order.orderId)} className="rounded-md bg-gray-900 px-3 py-2 text-sm text-white hover:bg-gray-800">
+                            <button onClick={() => setExpandedOrderId(isExpanded ? null : order.orderId)} className="rounded-md bg-indigo-900 px-3 py-2 text-sm text-white hover:bg-indigo-800">
                               {isExpanded ? 'Hide' : 'View'}
                             </button>
                             <button onClick={() => handlePrintReceipt(order)} className="rounded-md bg-sky-600 px-3 py-2 text-sm text-white hover:bg-sky-700">
@@ -2016,7 +2016,7 @@ export const AdminPanel2 = () => {
                               className="rounded-md bg-gray-900 px-3 py-2 text-sm text-white flex items-center gap-1 hover:bg-gray-700"
                             >
                               {hasNote && <span className="text-white">&#9999;</span>}
-                              Add/View Notes
+                              Notes
                             </button>
                             <button onClick={() => handleArchiveSingle(order)} disabled={!canArchive || !archiveSchemaReady || bulkArchiving} className="rounded-md bg-purple-600 px-3 py-2 text-sm text-white disabled:bg-gray-300">
                               Archive
