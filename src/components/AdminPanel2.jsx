@@ -23,6 +23,8 @@ const DEFAULT_PROMO_FORM = {
 
 const DELIVERY_RECEIPT_PRESETS = ['0', '40', '60', '80', '100'];
 const ORDER_NOTES_STORAGE_KEY = 'foodiefy-admin-order-notes-v1';
+const SALES_RANGE_DEFAULT_STORAGE_KEY = 'foodiefy-admin-sales-range-default-v1';
+const SALES_RANGE_CUSTOM_STORAGE_KEY = 'foodiefy-admin-sales-range-custom-v1';
 const THANK_YOU_TITLE_KEY = 'thank_you_modal_title';
 const THANK_YOU_BODY_KEY = 'thank_you_modal_body';
 const LOCAL_THANK_YOU_TITLE_KEY = 'foodiefy-thankyou-title';
@@ -359,8 +361,30 @@ export const AdminPanel2 = () => {
     paidCount: 0,
     expectedCount: 0,
   });
-  const [salesRange, setSalesRange] = useState('all');
-  const [customSalesRange, setCustomSalesRange] = useState({ startDate: '', endDate: '' });
+  const [salesRange, setSalesRange] = useState(() => {
+    try {
+      const raw = localStorage.getItem(SALES_RANGE_DEFAULT_STORAGE_KEY);
+      const allowed = new Set(['all', 'today', 'yesterday', 'week', 'lastMonth', 'custom']);
+      return allowed.has(raw) ? raw : 'all';
+    } catch {
+      return 'all';
+    }
+  });
+  const [customSalesRange, setCustomSalesRange] = useState(() => {
+    try {
+      const raw = localStorage.getItem(SALES_RANGE_CUSTOM_STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : null;
+      if (parsed && typeof parsed === 'object') {
+        return {
+          startDate: String(parsed.startDate || ''),
+          endDate: String(parsed.endDate || ''),
+        };
+      }
+    } catch {
+      // Ignore invalid local storage data.
+    }
+    return { startDate: '', endDate: '' };
+  });
   const [showSalesRangeModal, setShowSalesRangeModal] = useState(false);
   const [salesRangeDraft, setSalesRangeDraft] = useState({ startDate: '', endDate: '' });
   const [previousSales, setPreviousSales] = useState(0);
@@ -393,6 +417,14 @@ export const AdminPanel2 = () => {
   useEffect(() => {
     localStorage.setItem(ORDER_NOTES_STORAGE_KEY, JSON.stringify(orderNotes));
   }, [orderNotes]);
+
+  useEffect(() => {
+    localStorage.setItem(SALES_RANGE_DEFAULT_STORAGE_KEY, salesRange);
+  }, [salesRange]);
+
+  useEffect(() => {
+    localStorage.setItem(SALES_RANGE_CUSTOM_STORAGE_KEY, JSON.stringify(customSalesRange));
+  }, [customSalesRange]);
 
   const loadThankYouContent = async () => {
     try {
@@ -1368,28 +1400,44 @@ export const AdminPanel2 = () => {
               { key: 'week', label: 'This Week' },
               { key: 'lastMonth', label: 'Last Month' },
             ].map((option) => (
-              <button
-                key={option.key}
-                type="button"
-                onClick={() => setSalesRange(option.key)}
-                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-                  salesRange === option.key
-                    ? 'bg-orange-500 text-white'
-                    : 'bg-orange-50 text-orange-600 hover:bg-orange-100'
-                }`}
-              >
-                {option.label}
-              </button>
+                <button
+                  key={option.key}
+                  type="button"
+                  onClick={() => setSalesRange(option.key)}
+                  className={`rounded-full px-4 py-2 text-sm font-semibold transition inline-flex items-center gap-2 ${
+                    salesRange === option.key
+                      ? 'bg-orange-500 text-white'
+                      : 'bg-orange-50 text-orange-600 hover:bg-orange-100'
+                  }`}
+                >
+                  <span
+                    className={`h-3 w-3 rounded-full border ${
+                      salesRange === option.key
+                        ? 'border-white bg-white'
+                        : 'border-orange-500 bg-transparent'
+                    }`}
+                    aria-hidden="true"
+                  />
+                  {option.label}
+                </button>
             ))}
             <button
               type="button"
               onClick={handleOpenSalesRangeModal}
-              className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+              className={`rounded-full px-4 py-2 text-sm font-semibold transition inline-flex items-center gap-2 ${
                 salesRange === 'custom'
                   ? 'bg-orange-500 text-white'
                   : 'bg-orange-50 text-orange-600 hover:bg-orange-100'
               }`}
             >
+              <span
+                className={`h-3 w-3 rounded-full border ${
+                  salesRange === 'custom'
+                    ? 'border-white bg-white'
+                    : 'border-orange-500 bg-transparent'
+                }`}
+                aria-hidden="true"
+              />
               Date Range
             </button>
           </div>
