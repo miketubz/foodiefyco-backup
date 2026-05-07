@@ -91,10 +91,9 @@ const buildReceiptHtml = (order, options = {}) => {
   );
 
   const subtotal = itemTotal || Number(order.totalAmount || 0) + Number(order.discountAmount || 0);
-  const receiptGrandTotal = Number(order.totalAmount || 0) + deliveryCharge;
-  const totalsLabel = deliveryCharge > 0
-    ? 'Amount Due'
-    : (isOrderTotalModified(order) ? 'Seller Price Total' : 'Total');
+  const sellerTotal = Number(order.totalAmount || 0);
+  const receiptGrandTotal = sellerTotal + deliveryCharge;
+  const isModifiedTotal = isOrderTotalModified(order);
 
   return `
     <!DOCTYPE html>
@@ -244,9 +243,10 @@ const buildReceiptHtml = (order, options = {}) => {
           <div class="section totals">
             <div class="totals-row"><span>Subtotal</span><span>${formatCurrency(subtotal)}</span></div>
             <div class="totals-row"><span>Discount</span><span>-${formatCurrency(order.discountAmount)}</span></div>
+            ${isModifiedTotal ? `<div class="totals-row"><span>Seller Price Total</span><span>${formatCurrency(sellerTotal)}</span></div>` : ''}
             ${deliveryCharge > 0 ? `<div class="totals-row"><span>Delivery Charge (3rd party)</span><span>${formatCurrency(deliveryCharge)}</span></div>` : ''}
-            ${!deliveryCharge && isOrderTotalModified(order) ? '<div class="totals-row"><span class="muted">Adjusted by seller</span><span class="muted">Yes</span></div>' : ''}
-            <div class="totals-row total"><span>${totalsLabel}</span><span>${formatCurrency(receiptGrandTotal)}</span></div>
+            ${isModifiedTotal ? '<div class="totals-row"><span class="muted">Adjusted by seller</span><span class="muted">Yes</span></div>' : ''}
+            <div class="totals-row total"><span>${deliveryCharge > 0 ? 'Amount Due' : (isModifiedTotal ? 'Seller Price Total' : 'Total')}</span><span>${formatCurrency(receiptGrandTotal)}</span></div>
           </div>
 
           <div class="section">
@@ -1156,10 +1156,6 @@ export const AdminPanel2 = () => {
     openReceiptWindow(order);
   };
 
-  const handlePdfReceipt = (order) => {
-    handlePrintReceipt(order);
-  };
-
   const handleDeliveryReceipt = (order) => {
     setDeliveryReceiptDraft({
       open: true,
@@ -1772,12 +1768,6 @@ export const AdminPanel2 = () => {
                       </button>
                     )}
                     <button
-                      onClick={() => handlePdfReceipt(order)}
-                      className="rounded-md bg-emerald-600 px-3 py-2 text-xs text-white hover:bg-emerald-700"
-                    >
-                      PDF
-                    </button>
-                    <button
                       onClick={() => handleDeliveryReceipt(order)}
                       className="rounded-md bg-amber-600 px-3 py-2 text-xs text-white hover:bg-amber-700"
                     >
@@ -1889,9 +1879,6 @@ export const AdminPanel2 = () => {
                                 Print Modified
                               </button>
                             )}
-                            <button onClick={() => handlePdfReceipt(order)} className="rounded-md bg-emerald-600 px-3 py-2 text-sm text-white hover:bg-emerald-700">
-                              PDF
-                            </button>
                             <button onClick={() => handleDeliveryReceipt(order)} className="rounded-md bg-amber-600 px-3 py-2 text-sm text-white hover:bg-amber-700">
                               Deliver + Receipt
                             </button>
