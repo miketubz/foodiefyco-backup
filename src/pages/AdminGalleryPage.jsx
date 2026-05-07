@@ -135,6 +135,9 @@ function AdminGalleryPage() {
 
           <div className="flex flex-wrap gap-3">
             <Link to="/admin" className="rounded-md bg-white px-4 py-2 text-gray-700 shadow hover:bg-gray-100">
+              Admin Page
+            </Link>
+            <Link to="/admin" className="rounded-md bg-white px-4 py-2 text-gray-700 shadow hover:bg-gray-100">
               Orders
             </Link>
             <Link to="/admin/menu" className="rounded-md bg-white px-4 py-2 text-gray-700 shadow hover:bg-gray-100">
