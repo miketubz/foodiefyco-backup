@@ -25,6 +25,8 @@ const DELIVERY_RECEIPT_PRESETS = ['0', '40', '60', '80', '100'];
 const ORDER_NOTES_STORAGE_KEY = 'foodiefy-admin-order-notes-v1';
 const SALES_RANGE_DEFAULT_STORAGE_KEY = 'foodiefy-admin-sales-range-default-v1';
 const SALES_RANGE_CUSTOM_STORAGE_KEY = 'foodiefy-admin-sales-range-custom-v1';
+const SALES_RANGE_DEFAULT_KEY = 'admin_sales_range_default';
+const SALES_RANGE_CUSTOM_KEY = 'admin_sales_range_custom';
 const THANK_YOU_TITLE_KEY = 'thank_you_modal_title';
 const THANK_YOU_BODY_KEY = 'thank_you_modal_body';
 const LOCAL_THANK_YOU_TITLE_KEY = 'foodiefy-thankyou-title';
@@ -293,6 +295,8 @@ const isAppSettingsMissingError = (error) => {
   return message.includes('could not find the table') && message.includes('app_settings');
 };
 
+const SALES_RANGE_ALLOWED = new Set(['all', 'today', 'yesterday', 'week', 'lastMonth', 'custom']);
+
 const getPublicProofUrl = (path) => {
   if (!path) return '';
   if (/^https?:\/\//i.test(path)) return path;
@@ -369,8 +373,7 @@ export const AdminPanel2 = () => {
   const [salesRange, setSalesRange] = useState(() => {
     try {
       const raw = localStorage.getItem(SALES_RANGE_DEFAULT_STORAGE_KEY);
-      const allowed = new Set(['all', 'today', 'yesterday', 'week', 'lastMonth', 'custom']);
-      return allowed.has(raw) ? raw : 'all';
+      return SALES_RANGE_ALLOWED.has(raw) ? raw : 'all';
     } catch {
       return 'all';
     }
@@ -430,6 +433,102 @@ export const AdminPanel2 = () => {
   useEffect(() => {
     localStorage.setItem(SALES_RANGE_CUSTOM_STORAGE_KEY, JSON.stringify(customSalesRange));
   }, [customSalesRange]);
+
+  const saveSalesRangePreference = async (nextRange, nextCustomRange) => {
+    try {
+      const payload = [
+        { key: SALES_RANGE_DEFAULT_KEY, value: String(nextRange || 'all') },
+        { key: SALES_RANGE_CUSTOM_KEY, value: JSON.stringify(nextCustomRange || { startDate: '', endDate: '' }) },
+      ];
+
+      const { error } = await supabase
+        .from('app_settings')
+        .upsert(payload, { onConflict: 'key' });
+
+      if (error) throw error;
+    } catch (err) {
+      if (!isAppSettingsMissingError(err)) {
+        console.error('Failed to sync sales range preference:', err);
+      }
+    }
+  };
+
+  const loadSalesRangePreference = async () => {
+    let localRange = 'all';
+    let localCustom = { startDate: '', endDate: '' };
+
+    try {
+      const storedRange = localStorage.getItem(SALES_RANGE_DEFAULT_STORAGE_KEY);
+      if (SALES_RANGE_ALLOWED.has(storedRange)) {
+        localRange = storedRange;
+      }
+
+      const storedCustom = localStorage.getItem(SALES_RANGE_CUSTOM_STORAGE_KEY);
+      const parsedCustom = storedCustom ? JSON.parse(storedCustom) : null;
+      if (parsedCustom && typeof parsedCustom === 'object') {
+        localCustom = {
+          startDate: String(parsedCustom.startDate || ''),
+          endDate: String(parsedCustom.endDate || ''),
+        };
+      }
+    } catch {
+      // Keep safe defaults if local parsing fails.
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('app_settings')
+        .select('key, value')
+        .in('key', [SALES_RANGE_DEFAULT_KEY, SALES_RANGE_CUSTOM_KEY]);
+
+      if (error) throw error;
+
+      const settingsMap = Object.fromEntries((data || []).map((row) => [row.key, row.value]));
+
+      const dbRangeRaw = String(settingsMap[SALES_RANGE_DEFAULT_KEY] || '').trim();
+      const hasDbRange = SALES_RANGE_ALLOWED.has(dbRangeRaw);
+
+      let dbCustom = localCustom;
+      if (settingsMap[SALES_RANGE_CUSTOM_KEY]) {
+        try {
+          const parsed = JSON.parse(settingsMap[SALES_RANGE_CUSTOM_KEY]);
+          if (parsed && typeof parsed === 'object') {
+            dbCustom = {
+              startDate: String(parsed.startDate || ''),
+              endDate: String(parsed.endDate || ''),
+            };
+          }
+        } catch {
+          // Ignore malformed custom range setting.
+        }
+      }
+
+      if (hasDbRange) {
+        setCustomSalesRange(dbCustom);
+        setSalesRange(dbRangeRaw);
+        return;
+      }
+
+      setCustomSalesRange(localCustom);
+      setSalesRange(localRange);
+
+      if (SALES_RANGE_ALLOWED.has(localRange)) {
+        await saveSalesRangePreference(localRange, localCustom);
+      }
+    } catch (err) {
+      setCustomSalesRange(localCustom);
+      setSalesRange(localRange);
+
+      if (!isAppSettingsMissingError(err)) {
+        console.error('Failed to load sales range preference:', err);
+      }
+    }
+  };
+
+  const handleSetSalesRange = (nextRange) => {
+    setSalesRange(nextRange);
+    void saveSalesRangePreference(nextRange, customSalesRange);
+  };
 
   const loadThankYouContent = async () => {
     try {
@@ -511,6 +610,7 @@ export const AdminPanel2 = () => {
     loadAdmin();
     loadPromoCodes();
     loadSalesSummary();
+    loadSalesRangePreference();
     loadThankYouContent();
   }, []);
 
@@ -1012,8 +1112,10 @@ export const AdminPanel2 = () => {
       setActionError('Start date cannot be after end date for sales summary range.');
       return;
     }
-    setCustomSalesRange({ startDate, endDate });
+    const nextCustomRange = { startDate, endDate };
+    setCustomSalesRange(nextCustomRange);
     setSalesRange('custom');
+    void saveSalesRangePreference('custom', nextCustomRange);
     setActionError('');
     setShowSalesRangeModal(false);
   };
@@ -1412,7 +1514,7 @@ export const AdminPanel2 = () => {
                 <button
                   key={option.key}
                   type="button"
-                  onClick={() => setSalesRange(option.key)}
+                  onClick={() => handleSetSalesRange(option.key)}
                   className={`rounded-full px-4 py-2 text-sm font-semibold transition inline-flex items-center gap-2 ${
                     salesRange === option.key
                       ? 'bg-orange-500 text-white'
