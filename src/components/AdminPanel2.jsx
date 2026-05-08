@@ -23,6 +23,7 @@ const DEFAULT_PROMO_FORM = {
 
 const DELIVERY_RECEIPT_PRESETS = ['0', '40', '60', '80', '100'];
 const ORDER_NOTES_STORAGE_KEY = 'foodiefy-admin-order-notes-v1';
+const ORDER_NOTES_APP_SETTINGS_KEY = 'admin_order_notes_v1';
 const SALES_RANGE_DEFAULT_STORAGE_KEY = 'foodiefy-admin-sales-range-default-v1';
 const SALES_RANGE_CUSTOM_STORAGE_KEY = 'foodiefy-admin-sales-range-custom-v1';
 const SALES_RANGE_DEFAULT_KEY = 'admin_sales_range_default';
@@ -434,6 +435,64 @@ export const AdminPanel2 = () => {
     localStorage.setItem(SALES_RANGE_CUSTOM_STORAGE_KEY, JSON.stringify(customSalesRange));
   }, [customSalesRange]);
 
+  const saveOrderNotesToCloud = async (nextNotes) => {
+    try {
+      const payload = [{ key: ORDER_NOTES_APP_SETTINGS_KEY, value: JSON.stringify(nextNotes || {}) }];
+      const { error } = await supabase.from('app_settings').upsert(payload, { onConflict: 'key' });
+      if (error) throw error;
+    } catch (err) {
+      if (!isAppSettingsMissingError(err)) {
+        setActionError(`Failed to sync notes to cloud: ${err?.message || 'Unknown error'}`);
+      }
+    }
+  };
+
+  const loadOrderNotes = async () => {
+    let localNotes = {};
+
+    try {
+      const raw = localStorage.getItem(ORDER_NOTES_STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : {};
+      localNotes = parsed && typeof parsed === 'object' ? parsed : {};
+    } catch {
+      localNotes = {};
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('app_settings')
+        .select('value')
+        .eq('key', ORDER_NOTES_APP_SETTINGS_KEY)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (data?.value) {
+        try {
+          const parsedCloudNotes = JSON.parse(data.value);
+          const cloudNotes = parsedCloudNotes && typeof parsedCloudNotes === 'object' ? parsedCloudNotes : {};
+          setOrderNotes(cloudNotes);
+          localStorage.setItem(ORDER_NOTES_STORAGE_KEY, JSON.stringify(cloudNotes));
+          return;
+        } catch {
+          // Ignore malformed cloud data and fall through to local notes.
+        }
+      }
+
+      setOrderNotes(localNotes);
+
+      // One-time seed: if cloud has no notes yet but local has data, push local to cloud.
+      if (Object.keys(localNotes).length > 0) {
+        await saveOrderNotesToCloud(localNotes);
+      }
+    } catch (err) {
+      setOrderNotes(localNotes);
+      if (!isAppSettingsMissingError(err)) {
+        setActionError(`Failed to load cloud notes: ${err?.message || 'Unknown error'}`);
+      }
+    }
+  };
+
   const saveSalesRangePreference = async (nextRange, nextCustomRange) => {
     try {
       const payload = [
@@ -612,6 +671,7 @@ export const AdminPanel2 = () => {
     loadSalesSummary();
     loadSalesRangePreference();
     loadThankYouContent();
+    loadOrderNotes();
   }, []);
 
   useEffect(() => {
@@ -1354,15 +1414,15 @@ export const AdminPanel2 = () => {
     if (!orderId) return;
 
     const trimmedText = String(noteDraft.text || '').trim();
-    setOrderNotes((prev) => {
-      const next = { ...prev };
-      if (!trimmedText) {
-        delete next[orderId];
-      } else {
-        next[orderId] = trimmedText;
-      }
-      return next;
-    });
+    const nextNotes = { ...orderNotes };
+    if (!trimmedText) {
+      delete nextNotes[orderId];
+    } else {
+      nextNotes[orderId] = trimmedText;
+    }
+
+    setOrderNotes(nextNotes);
+    void saveOrderNotesToCloud(nextNotes);
 
     setSuccessMessage('Order note saved.');
     setNoteDraft((prev) => ({ ...prev, text: trimmedText, editing: false }));
