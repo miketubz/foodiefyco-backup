@@ -668,7 +668,6 @@ export const AdminPanel2 = () => {
 
     loadAdmin();
     loadPromoCodes();
-    loadSalesSummary();
     loadSalesRangePreference();
     loadThankYouContent();
     loadOrderNotes();
@@ -1098,7 +1097,6 @@ export const AdminPanel2 = () => {
       setError(err?.message || 'Failed to fetch orders');
     } finally {
       setLoading(false);
-      loadSalesSummary();
     }
   };
 
